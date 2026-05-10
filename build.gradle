@@ -141,6 +141,11 @@ sourceSets {
 	shim
 	main {
 		compileClasspath += shim.output
+		if (project.minecraft_version.startsWith('1.21')) {
+			java {
+				exclude 'me/modmuss50/optifabric/compat/**'
+			}
+		}
 	}
 }
 

@@ -35,7 +35,7 @@ abstract class CustomColoursMixin {
 	@Inject(method = "getColorMultiplier", cancellable = true,
 			at = @At(value = "FIELD", target = "Lnet/minecraft/block/Blocks;LILY_PAD:Lnet/minecraft/block/Block;", opcode = Opcodes.GETSTATIC, remap = true))
 	private static void skipOld(BakedQuad quad, BlockState state, BlockRenderView world, BlockPos pos, @Coerce Object renderEnv, CallbackInfoReturnable<Integer> call) {
-		if (!"minecraft".equals(Registries.getID(state.getBlock()).getNamespace()) && getBlockColors().getColor(state, world, pos, quad.getColorIndex()) == -1) {
+		if (!"minecraft".equals(Registries.getID(state.getBlock()).getNamespace()) && (!quad.hasTint() || getBlockColors().getColor(state, world, pos, 0) == -1)) {
 			call.setReturnValue(-1); //Avoid tinting a mod block which wouldn't otherwise be tinted
 		}
 	}

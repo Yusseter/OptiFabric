@@ -24,7 +24,7 @@ abstract class CrashReportMixin {
 		try {
 			return ConstructorUtils.invokeExactConstructor(CrashReportSection.class, name);
 		} catch (ReflectiveOperationException e) {
-			return new CrashReportSection(crash, name);
+			throw new IllegalStateException("Failed to create crash report section", e);
 		}
 	}
 

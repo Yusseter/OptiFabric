@@ -10,8 +10,6 @@ import java.util.Set;
 
 import net.fabricmc.loader.api.FabricLoader;
 
-import me.modmuss50.optifabric.compat.fabricrenderingfluids.FluidRendererFix;
-import me.modmuss50.optifabric.compat.uglyscoreboardfix.InGameHudFix;
 import me.modmuss50.optifabric.util.RemappingUtils;
 
 public class OptifineFixer {
@@ -44,13 +42,11 @@ public class OptifineFixer {
 		registerFix("class_806", new ModelOverrideListFix());
 
 		if (FabricLoader.getInstance().isModLoaded("fabric-rendering-fluids-v1")) {
-			//net/minecraft/client/render/block/FluidRenderer
-			registerFix("class_775", new FluidRendererFix());
+			registerFix("class_775", "me.modmuss50.optifabric.compat.fabricrenderingfluids.FluidRendererFix");
 		}
 
 		if (FabricLoader.getInstance().isModLoaded("uglyscoreboardfix")) {
-			//net/minecraft/client/gui/hud/InGameHud
-			registerFix("class_329", new InGameHudFix());
+			registerFix("class_329", "me.modmuss50.optifabric.compat.uglyscoreboardfix.InGameHudFix");
 		}
 
 		//net/minecraft/block/entity/BlockEntity
@@ -59,6 +55,15 @@ public class OptifineFixer {
 
 	private void registerFix(String className, ClassFixer classFixer) {
 		classFixes.computeIfAbsent(RemappingUtils.getClassName(className), s -> new ArrayList<>()).add(classFixer);
+	}
+
+	private void registerFix(String className, String classFixerName) {
+		try {
+			Class<?> type = Class.forName(classFixerName);
+			registerFix(className, (ClassFixer) type.getDeclaredConstructor().newInstance());
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("Failed to load " + classFixerName, e);
+		}
 	}
 
 	@SuppressWarnings("SameParameterValue") //Might be useful in future

@@ -21,7 +21,6 @@ import net.minecraft.util.math.MathHelper;
 
 import net.fabricmc.loader.api.FabricLoader;
 
-import me.modmuss50.optifabric.compat.fabricscreenapi.Events;
 import me.modmuss50.optifabric.mod.DrawContext;
 import me.modmuss50.optifabric.mod.OptifabricError;
 import me.modmuss50.optifabric.mod.OptifabricSetup;
@@ -43,8 +42,6 @@ public abstract class MixinTitleScreen extends Screen {
 	@Inject(method = "init", at = @At("RETURN"))
 	private void init(CallbackInfo info) {
 		if (OptifabricError.hasError()) {
-			if (OptifabricSetup.usingScreenAPI) Events.afterInit(client, this, width, height);
-
 			String actionButtonText, helpButtonText;
 			BooleanConsumer action;
 			switch (OptifineVersion.jarType) {
@@ -86,7 +83,7 @@ public abstract class MixinTitleScreen extends Screen {
 			}
 			}
 
-			client.openScreen(new ConfirmScreen(action, Text.literal("There was an error loading OptiFabric!", Formatting.RED),
+			client.setScreen(new ConfirmScreen(action, Text.literal("There was an error loading OptiFabric!", Formatting.RED),
 					Text.literal(OptifabricError.getError()), Text.literal(helpButtonText, Formatting.GREEN), Text.literal(actionButtonText)));
 		}
 	}
