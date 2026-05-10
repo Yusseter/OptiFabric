@@ -12,7 +12,9 @@ buildscript {
 		}
 	}
 	dependencies {
-		classpath 'org.ow2.asm:asm:9.6'
+		classpath 'org.ow2.asm:asm:9.8'
+		classpath 'net.fabricmc:stitch:0.6.2'
+		classpath 'com.github.Chocohead:tiny-remapper:b822055d2069b51a34d3834648aba4db4424f120'
 		classpath 'com.github.Chocohead.Fabric-Loom:fabric-loom:2fc5f55'
 		classpath 'com.github.johnrengelman.shadow:com.github.johnrengelman.shadow.gradle.plugin:4.0.4'
 		if (gradle.gradleVersion.tokenize('.' as char)[0].toInteger() <= 6) {
@@ -25,11 +27,26 @@ buildscript {
 	}
 }
 
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
+
 apply plugin: net.fabricmc.loom.LoomGradlePlugin
 apply plugin: 'maven-publish'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
+
+def java21Home = findProperty("java21Home") ?: System.getenv("JAVA21_HOME")
+
+if (java21Home) {
+	tasks.withType(JavaCompile).configureEach {
+		options.fork = true
+		options.forkOptions.executable = "${java21Home}/bin/javac"
+	}
+}
 
 archivesBaseName = project.archives_base_name
 version = project.mod_version
@@ -49,12 +66,71 @@ configurations {
 	}
 }
 
+if (project.minecraft_version.startsWith('1.21')) {
+	minecraft.addLibraryFilter { String artifact -> artifact.count(':') < 3 }
+}
+
+def strippedFabricApiModule(String module) {
+	def dependency = dependencies.create("net.fabricmc.fabric-api:${module}") {
+		transitive = false
+	}
+	def input = configurations.detachedConfiguration(dependency).singleFile
+	def output = file("${buildDir}/stripped-fabric-api/${input.name}")
+
+	if (!output.exists() || output.lastModified() < input.lastModified()) {
+		output.parentFile.mkdirs()
+
+		new ZipFile(input).withCloseable { zip ->
+			output.withOutputStream { stream ->
+				new ZipOutputStream(stream).withCloseable { out ->
+					zip.entries().each { entry ->
+						if (entry.name.endsWith(".accesswidener")) {
+							return
+						}
+
+						def next = new ZipEntry(entry.name)
+						next.time = entry.time
+						out.putNextEntry(next)
+
+						if (!entry.isDirectory()) {
+							zip.getInputStream(entry).withCloseable { entryStream ->
+								if (entry.name == "fabric.mod.json") {
+									def json = new JsonSlurper().parse(entryStream)
+									json.remove("accessWidener")
+									out.write(JsonOutput.prettyPrint(JsonOutput.toJson(json)).getBytes("UTF-8"))
+								} else {
+									entryStream.transferTo(out)
+								}
+							}
+						}
+
+						out.closeEntry()
+					}
+				}
+			}
+		}
+	}
+
+	return files(output)
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	[
+			"fabric-api-base:1.0.5+4ebb5c083e",
+			"fabric-block-view-api-v2:1.0.39+4ebb5c083e",
+			"fabric-data-attachment-api-v1:1.8.47+eed0806f3e",
+			"fabric-renderer-api-v1:8.0.3+f4ffd2e53e",
+			"fabric-renderer-indigo:5.0.3+f4ffd2e53e",
+			"fabric-rendering-fluids-v1:3.1.43+4ebb5c083e",
+			"fabric-rendering-v1:16.2.10+0290ad933e",
+			"fabric-screen-api-v1:3.1.7+4ebb5c083e"
+	].each { module ->
+		modImplementation strippedFabricApiModule(module)
+	}
 
 	shadow "net.fabricmc:tiny-remapper:${project.tiny_remapper_version}"
 	modImplementation "com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}"
@@ -72,6 +148,7 @@ compileJava {
 	mappings {
 		from = 'named'
 		to = 'intermediary'
+		if (!project.minecraft_version.startsWith('1.21')) {
 		classes += ['net/minecraft/class_6850': 'net/minecraft/class_6850', 'net/minecraft/class_6850$class_6851': 'net/minecraft/class_6850$class_6851']
 		method 'net/optifine/reflect/ReflectorForge', '(Lnet/minecraft/item/ItemStack;)Z', 'isItemDamaged', 'isItemDamaged'
 		method 'net/minecraft/client/particle/ParticleManager', '(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider$Immediate;' +
@@ -87,7 +164,9 @@ compileJava {
 					'net/minecraft/client/render/chunk/ChunkBuilder$BuiltChunk$RebuildTask$RenderData' : 'net/minecraft/class_846$class_851$class_4578$class_7435']
 		method 'net/minecraft/client/render/chunk/ChunkBuilder$BuiltChunk$RebuildTask', '(FFFLnet/minecraft/client/render/chunk/BlockBufferBuilderStorage;)' + 
 				'Lnet/minecraft/client/render/chunk/ChunkBuilder$BuiltChunk$RebuildTask$RenderData;', 'render', 'method_22785'
-		classes += ['net/minecraft/class_7172', 'net/minecraft/class_7172$class_7307', 'net/minecraft/class_7172$class_7303', 'net/minecraft/class_7172$class_7178'].collectEntries{[it, it]}
+		if (!project.minecraft_version.startsWith('1.21')) {
+			classes += ['net/minecraft/class_7172', 'net/minecraft/class_7172$class_7307', 'net/minecraft/class_7172$class_7303', 'net/minecraft/class_7172$class_7178'].collectEntries{[it, it]}
+		}
 		method 'net/minecraft/client/render/WorldRenderer', '(Lnet/minecraft/client/util/math/MatrixStack;FJZLnet/minecraft/client/render/Camera;' +
 		'Lnet/minecraft/client/render/GameRenderer;Lnet/minecraft/client/render/LightmapTextureManager;Lorg/joml/Matrix4f;)V', 'render', 'method_22710'
 		method 'net/minecraft/client/gui/screen/Screen', '(Lnet/minecraft/client/util/math/MatrixStack;IIF)V', 'renderWithTooltip', 'method_47413'
@@ -95,6 +174,7 @@ compileJava {
 		method 'net/minecraft/class_5944', '(Lnet/minecraft/class_5912;Lnet/minecraft/util/Identifier;Lnet/minecraft/client/render/VertexFormat;)V', '<init>', '<init>'
 		method 'net/minecraft/client/gui/screen/Screen', '(Lnet/minecraft/class_332;IIF)V', 'renderWithTooltip', 'method_47413'
 		classes += ['net/minecraft/class_7775': 'net/minecraft/class_7775']
+		}
 	}
 }
 
@@ -123,6 +203,9 @@ processResources {
 // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
 tasks.withType(JavaCompile) {
 	options.encoding = "UTF-8"
+	if (project.minecraft_version.startsWith('1.21')) {
+		options.compilerArgs += "-proc:none"
+	}
 }
 
 // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
