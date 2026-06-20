@@ -156,6 +156,8 @@ public class ZipUtils {
 	}
 
 	private static void transform(File zipOrigin, int originFlags, ZipTransformer transformer, File zipDestination) throws IOException {
+		FileUtils.forceMkdirParent(zipDestination);
+
 		try (ZipFile origin = new ZipFile(zipOrigin, originFlags); ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(zipDestination)))) {
 			boolean pure = transformer instanceof ZipVisitor;
 

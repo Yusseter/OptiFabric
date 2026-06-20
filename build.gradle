@@ -12,6 +12,7 @@ buildscript {
 		}
 	}
 	dependencies {
+		classpath files('.local/stitch-compat/stitch-compat.jar')
 		classpath 'org.ow2.asm:asm:9.8'
 		classpath 'net.fabricmc:stitch:0.6.2'
 		classpath 'com.github.Chocohead:tiny-remapper:b822055d2069b51a34d3834648aba4db4424f120'
@@ -208,9 +209,6 @@ processResources {
 // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
 tasks.withType(JavaCompile) {
 	options.encoding = "UTF-8"
-	if (project.minecraft_version.startsWith('1.21')) {
-		options.compilerArgs += "-proc:none"
-	}
 }
 
 // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task

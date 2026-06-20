@@ -38,19 +38,43 @@ public class OptifabricSetup implements Runnable {
 	public static File optifineRuntimeJar = null;
 	public static boolean usingScreenAPI;
 
+	static {
+		log("OptifabricSetup class loaded");
+		StartupLog.record("optifabric-setup-class-loaded");
+	}
+
+	private static void log(String message) {
+		System.err.println("[OptiFabric] " + message);
+		System.err.flush();
+	}
+
 	//This is called early on to allow us to get the transformers in beofore minecraft starts
 	@Override
 	public void run() {
+		log("Early setup started");
+		StartupLog.record("optifabric-setup-run");
+		startStartupHeartbeat();
 		OptifineInjector injector;
 		try {
+			validateFabricApiCompatibility();
+			StartupLog.record("optifabric-before-runtime");
+			log("Preparing OptiFine runtime jar");
 			Pair<File, ClassCache> runtime = OptifineSetup.getRuntime();
+			StartupLog.record("optifabric-after-runtime");
 			optifineRuntimeJar = runtime.getLeft();
+			log("Prepared OptiFine runtime jar: " + runtime.getLeft());
 
 			//Add the optifine jar to the classpath, as
+			StartupLog.record("optifabric-before-classpath-add");
 			ClassTinkerers.addURL(runtime.getLeft().toURI().toURL());
+			StartupLog.record("optifabric-after-classpath-add");
+			log("Added OptiFine runtime jar to classpath");
 
+			StartupLog.record("optifabric-before-injector-setup");
 			injector = new OptifineInjector(runtime.getRight());
 			injector.setup();
+			StartupLog.record("optifabric-after-injector-setup");
+			log("OptiFine injector setup complete");
 		} catch (Throwable e) {
 			if (!OptifabricError.hasError()) {
 				OptifineVersion.jarType = JarType.INTERNAL_ERROR;
@@ -119,7 +143,11 @@ public class OptifabricSetup implements Runnable {
 			}
 		};
 
-		if (!isPresent("minecraft", ">=1.21") && isPresent("fabric-renderer-api-v1")) {
+		boolean minecraftAtLeast121 = isPresent("minecraft", ">=1.21");
+		log("Minecraft >= 1.21 gate: " + minecraftAtLeast121);
+
+		if (!minecraftAtLeast121 && isPresent("fabric-renderer-api-v1")) {
+			log("Adding fabric-renderer-api compat mixins");
 			if (isPresent("minecraft", ">=1.19")) {
 				Mixins.addConfiguration("optifabric.compat.fabric-renderer-api.new-mixins.json");
 			} else {
@@ -127,24 +155,24 @@ public class OptifabricSetup implements Runnable {
 			}
 		}
 
-		if (!isPresent("minecraft", ">=1.21") && isPresent("fabric-rendering-v1", ">=1.5.0") && particlesPresent.getAsBoolean()) {
+		if (!minecraftAtLeast121 && isPresent("fabric-rendering-v1", ">=1.5.0") && particlesPresent.getAsBoolean()) {
 			if (isPresent("minecraft", ">=1.19.3")) {
 				Mixins.addConfiguration("optifabric.compat.fabric-rendering.new-mixins.json");
 			} else {
 				Mixins.addConfiguration("optifabric.compat.fabric-rendering.mixins.json");
 			}
 		}
-		if (!isPresent("minecraft", ">=1.21") && (isPresent("fabric-rendering-v1", ">=1.13.0 <2.0") || isPresent("fabric-rendering-v1", ">=2.1.0"))) {
+		if (!minecraftAtLeast121 && (isPresent("fabric-rendering-v1", ">=1.13.0 <2.0") || isPresent("fabric-rendering-v1", ">=2.1.0"))) {
 			Mixins.addConfiguration("optifabric.compat.fabric-rendering.extra-mixins.json");
 		}
 
-		if (!isPresent("minecraft", ">=1.21") && isPresent("fabric-block-view-api-v2")) {
+		if (!minecraftAtLeast121 && isPresent("fabric-block-view-api-v2")) {
 			Mixins.addConfiguration("optifabric.compat.fabric-block-view-api.mixins.json");
 
 			if (isPresent("fabric-rendering-data-attachment-v1")) {
 				Mixins.addConfiguration("optifabric.compat.fabric-rendering-data.mixins.json");
 			}
-		} else if (!isPresent("minecraft", ">=1.21") && isPresent("fabric-rendering-data-attachment-v1")) {
+		} else if (!minecraftAtLeast121 && isPresent("fabric-rendering-data-attachment-v1")) {
 			Mixins.addConfiguration("optifabric.compat.fabric-rendering-data.mixins.json");
 
 			if (isPresent("fabric-rendering-data-attachment-v1", ">0.3.0")) {
@@ -176,7 +204,8 @@ public class OptifabricSetup implements Runnable {
 			}
 		}
 
-		if (!isPresent("minecraft", ">=1.21") && isPresent("fabric-renderer-indigo")) {
+		if (!minecraftAtLeast121 && isPresent("fabric-renderer-indigo")) {
+			log("Adding fabric-renderer-indigo compat mixins");
 			if (isPresent("minecraft", ">=1.19")) {
 				injector.predictFuture(RemappingUtils.getClassName("class_776")).ifPresent(node -> {//BlockRenderManager
 					String desc = RemappingUtils.getClassName("class_1921").concat(";)V"); //RenderLayer
@@ -552,6 +581,30 @@ public class OptifabricSetup implements Runnable {
 				}
 			}
 		}
+	}
+
+	private static void validateFabricApiCompatibility() {
+		if (isPresent("minecraft", "1.21.11") && isPresent("fabric-api") && !isPresent("fabric-api", ">=0.141.4+1.21.11")) {
+			throw new IllegalStateException("Fabric API 0.141.3+1.21.11 is too old for Minecraft 1.21.11. Update Fabric API to 0.141.4+1.21.11 or newer.");
+		}
+	}
+
+	private static void startStartupHeartbeat() {
+		Thread heartbeat = new Thread(() -> {
+			StartupLog.record("optifabric-heartbeat-start");
+			for (int i = 1; i <= 10; i++) {
+				try {
+					Thread.sleep(1000L);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					return;
+				}
+
+				StartupLog.record("optifabric-heartbeat-" + i);
+			}
+		}, "OptiFabric Startup Heartbeat");
+		heartbeat.setDaemon(true);
+		heartbeat.start();
 	}
 
 	private static boolean isPresent(String modID) {

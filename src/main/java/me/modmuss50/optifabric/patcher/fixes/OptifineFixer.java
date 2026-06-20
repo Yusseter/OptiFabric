@@ -9,6 +9,10 @@ import java.util.Map;
 import java.util.Set;
 
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
+import net.fabricmc.loader.api.metadata.ModMetadata;
+import net.fabricmc.loader.util.version.SemanticVersionImpl;
+import net.fabricmc.loader.util.version.SemanticVersionPredicateParser;
 
 import me.modmuss50.optifabric.util.RemappingUtils;
 
@@ -30,7 +34,9 @@ public class OptifineFixer {
 		registerFix("class_778$class_780", new AmbientOcclusionCalculatorFix());
 
 		//net/minecraft/client/Keyboard
-		registerFix("class_309", new KeyboardFix());
+		if (FabricLoader.getInstance().isModLoaded("replaymod")) {
+			registerFix("class_309", new KeyboardFix());
+		}
 
 		//net/minecraft/client/texture/SpriteAtlasTexture
 		registerFix("class_1059", new SpriteAtlasTextureFix());
@@ -38,10 +44,19 @@ public class OptifineFixer {
 		//net/minecraft/client/particle/ParticleManager
 		registerFix("class_702", new ParticleManagerFix());
 
+		//net/minecraft/client/render/model/BakedModelManager
+		registerFix("class_1092", new BakedModelManagerFix());
+
+		//net/minecraft/client/render/block/BlockRenderManager
+		registerFix("class_776", new BlockRenderManagerFix());
+
+		//net/minecraft/client/render/WorldRenderer
+		registerFix("class_761", new WorldRendererFix());
+
 		//net/minecraft/client/render/model/json/ModelOverrideList
 		registerFix("class_806", new ModelOverrideListFix());
 
-		if (FabricLoader.getInstance().isModLoaded("fabric-rendering-fluids-v1")) {
+		if (FabricLoader.getInstance().isModLoaded("fabric-rendering-fluids-v1") && isMinecraftBefore("1.21")) {
 			registerFix("class_775", "me.modmuss50.optifabric.compat.fabricrenderingfluids.FluidRendererFix");
 		}
 
@@ -69,6 +84,19 @@ public class OptifineFixer {
 	@SuppressWarnings("SameParameterValue") //Might be useful in future
 	private void skipClass(String className) {
 		skippedClass.add(RemappingUtils.getClassName(className));
+	}
+
+	private static boolean isMinecraftBefore(String versionRange) {
+		ModContainer minecraft = FabricLoader.getInstance().getModContainer("minecraft").orElse(null);
+		if (minecraft == null) return false;
+
+		ModMetadata metadata = minecraft.getMetadata();
+		try {
+			SemanticVersionImpl version = new SemanticVersionImpl(metadata.getVersion().getFriendlyString(), false);
+			return SemanticVersionPredicateParser.create(versionRange).test(version);
+		} catch (net.fabricmc.loader.util.version.VersionParsingException e) {
+			return false;
+		}
 	}
 
 	public boolean shouldSkip(String className) {

@@ -165,6 +165,8 @@ class MethodComparison {
 				 return true; //Could check the end result format...
 			} else if ("java/lang/runtime/ObjectMethods".equals(a.bsm.getOwner())) {
 				return Objects.equals(a.name, b.name) && Arrays.asList(a.bsmArgs).subList(2, a.bsmArgs.length).equals(Arrays.asList(b.bsmArgs).subList(2, b.bsmArgs.length));
+			} else if ("java/lang/runtime/SwitchBootstraps".equals(a.bsm.getOwner())) {
+				return Objects.equals(a.name, b.name) && Arrays.equals(a.bsmArgs, b.bsmArgs);
 			} else {
 				throw new IllegalStateException(String.format("Unknown invokedynamic bsm: %s#%s%s (tag=%d iif=%b)", a.bsm.getOwner(), a.bsm.getName(), a.bsm.getDesc(), a.bsm.getTag(), a.bsm.isInterface()));
 			}
@@ -254,6 +256,13 @@ class MethodComparison {
 				) && !bsm.isInterface();
 	}
 
+	static boolean isKnownNonLambdaInvokeDynamic(Handle bsm) {
+		String owner = bsm.getOwner();
+		return "java/lang/invoke/StringConcatFactory".equals(owner)
+				|| "java/lang/runtime/ObjectMethods".equals(owner)
+				|| "java/lang/runtime/SwitchBootstraps".equals(owner);
+	}
+
 	private static void findHandles(InsnList instructions, int from, BiConsumer<InvokeDynamicInsnNode, Handle> lambdaEater) {
 		findLambdas(instructions, from, idin -> {
 			Handle impl = (Handle) idin.bsmArgs[1];
@@ -282,7 +291,7 @@ class MethodComparison {
 
 				if (isJavaLambdaMetafactory(idin.bsm)) {
 					instructionEater.accept(idin);
-				} else if ("java/lang/invoke/StringConcatFactory".equals(idin.bsm.getOwner()) || "java/lang/runtime/ObjectMethods".equals(idin.bsm.getOwner())) {
+				} else if (isKnownNonLambdaInvokeDynamic(idin.bsm)) {
 					//These won't have any methods within the class to find
 				} else {
 					throw new IllegalStateException(String.format("Unknown invokedynamic bsm: %s#%s%s (tag=%d iif=%b)", idin.bsm.getOwner(), idin.bsm.getName(), idin.bsm.getDesc(), idin.bsm.getTag(), idin.bsm.isInterface()));

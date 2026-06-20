@@ -1,6 +1,7 @@
 {
   "required": true,
   "package": "me.modmuss50.optifabric.mixin",
+  "plugin": "me.modmuss50.optifabric.mod.CrashReportMixinPlugin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "MixinTitleScreen",
