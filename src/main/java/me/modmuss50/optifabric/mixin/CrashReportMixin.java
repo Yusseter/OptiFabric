@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.reflect.ConstructorUtils;
 
+import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -74,7 +75,9 @@ abstract class CrashReportMixin {
 			})
 		;
 
-	@Inject(method = "addStackTrace", at = @At("RETURN"))
+	@Dynamic("Removed from Minecraft 1.21; this mixin is disabled by CrashReportMixinPlugin for 1.21+")
+	@SuppressWarnings("target")
+	@Inject(method = "addStackTrace(Ljava/lang/StringBuilder;)V", at = @At("RETURN"))
 	private void addStackTrace(StringBuilder builder, CallbackInfo info) {
 		optifine.addStackTrace(builder.append("\n\n"));
 	}

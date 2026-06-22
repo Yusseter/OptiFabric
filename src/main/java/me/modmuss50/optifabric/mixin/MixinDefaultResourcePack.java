@@ -3,6 +3,7 @@ package me.modmuss50.optifabric.mixin;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,9 +19,13 @@ import me.modmuss50.optifabric.mod.OptifineResources;
 @Mixin(value = DefaultResourcePack.class, priority = 400)
 abstract class MixinDefaultResourcePack {
 	@Shadow
+	@Dynamic("Legacy DefaultResourcePack helper used by old Minecraft versions")
+	@SuppressWarnings("target")
 	private static native String getPath(ResourceType type, Identifier id);
 
-	@Inject(method = "findInputStream", at = @At("HEAD"), cancellable = true)
+	@Dynamic("Legacy DefaultResourcePack method used by old Minecraft versions")
+	@SuppressWarnings("target")
+	@Inject(method = "findInputStream(Lnet/minecraft/resource/ResourceType;Lnet/minecraft/util/Identifier;)Ljava/io/InputStream;", at = @At("HEAD"), cancellable = true)
 	protected void onFindInputStream(ResourceType type, Identifier id, CallbackInfoReturnable<InputStream> callback) {
 		String path = getPath(type, id);
 
@@ -33,7 +38,9 @@ abstract class MixinDefaultResourcePack {
 		}
 	}
 
-	@Inject(method = "contains", at = @At("HEAD"), cancellable = true)
+	@Dynamic("Legacy DefaultResourcePack method used by old Minecraft versions")
+	@SuppressWarnings("target")
+	@Inject(method = "contains(Lnet/minecraft/resource/ResourceType;Lnet/minecraft/util/Identifier;)Z", at = @At("HEAD"), cancellable = true)
 	public void doesContain(ResourceType type, Identifier id, CallbackInfoReturnable<Boolean> callback) {
 		String path = getPath(type, id);
 

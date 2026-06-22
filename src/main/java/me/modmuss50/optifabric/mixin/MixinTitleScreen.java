@@ -88,7 +88,7 @@ public abstract class MixinTitleScreen extends Screen {
 		}
 	}
 
-	@Inject(method = {"render(Lnet/minecraft/client/util/math/MatrixStack;IIF)V", "method_25394(Lnet/minecraft/class_332;IIF)V"}, at = @At("RETURN"), require = 1)
+	@Inject(method = "render(Lnet/minecraft/client/gui/DrawContext;IIF)V", at = @At("RETURN"), require = 1)
 	private void render(@Coerce Object matricesOrContext, int mouseX, int mouseY, float delta, CallbackInfo info) {
 		if (!OptifabricError.hasError()) {
 			float fadeTime = doBackgroundFade ? (Util.getMeasuringTimeMs() - backgroundFadeStart) / 1000F : 1F;
