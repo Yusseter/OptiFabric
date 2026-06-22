@@ -1,4 +1,9 @@
-rollout-2026-05-10T16-01-13-019e1268-1c59-7c33-a4a3-1f691ad92be6.jsonl
+# local agent/runtime artifacts
+instructions.md
+rollout-*.jsonl
+debug/
+compat-mods/
+.third-party-src/
 
 # local
 .local/
