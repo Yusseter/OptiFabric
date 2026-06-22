@@ -5,11 +5,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -31,9 +29,17 @@ import me.modmuss50.optifabric.patcher.fixes.OptifineFixer;
 import me.modmuss50.optifabric.util.ASMUtils;
 
 public class OptifineInjector {
-	private static Set<String> patched = new HashSet<>();
 	private static final Map<String, List<String>> WATCHED_METHODS = Map.of(
 			"net/minecraft/class_1092", List.of("method_65750(Ljava/util/Map$Entry;)Lcom/mojang/datafixers/util/Pair;"),
+			"net/minecraft/class_1092$1", List.of(
+					"method_65739(Lnet/minecraft/class_4730;Lnet/minecraft/class_10813;)Lnet/minecraft/class_1058;",
+					"method_65740(Ljava/lang/String;Lnet/minecraft/class_10813;)Lnet/minecraft/class_1058;"),
+			"net/minecraft/class_775", List.of(
+					"method_3347(Lnet/minecraft/class_1920;Lnet/minecraft/class_2338;Lnet/minecraft/class_4588;Lnet/minecraft/class_3610;)Z",
+					"method_3347(Lnet/minecraft/class_1920;Lnet/minecraft/class_2338;Lnet/minecraft/class_4588;Lnet/minecraft/class_2680;Lnet/minecraft/class_3610;)V"),
+			"net/minecraft/class_10430", List.of(
+					"<init>(Ljava/util/List;Ljava/util/List;Lnet/minecraft/class_10809;Ljava/util/function/Function;)V",
+					"<init>(Ljava/util/List;Ljava/util/List;Lnet/minecraft/class_10809;Ljava/util/function/Function;Lnet/minecraft/class_2960;Z)V"),
 			"net/minecraft/class_761", List.of("method_62214(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lnet/minecraft/class_11658;Lnet/minecraft/class_3695;Lorg/joml/Matrix4f;Lnet/minecraft/class_9925;Lnet/minecraft/class_9925;ZLnet/minecraft/class_9925;Lnet/minecraft/class_9925;)V"),
 			"net/minecraft/class_776", List.of(
 					"method_3351()Lnet/minecraft/class_773;",
@@ -43,6 +49,7 @@ public class OptifineInjector {
 					"method_3355(Lnet/minecraft/class_2680;Lnet/minecraft/class_2338;Lnet/minecraft/class_1920;Lnet/minecraft/class_4587;Lnet/minecraft/class_4588;ZLjava/util/List;)V",
 					"method_3352(Lnet/minecraft/class_2338;Lnet/minecraft/class_1920;Lnet/minecraft/class_4588;Lnet/minecraft/class_2680;Lnet/minecraft/class_3610;)V",
 					"method_3350()Lnet/minecraft/class_778;"),
+			"net/minecraft/class_4603", List.of("method_24225(Lnet/minecraft/class_1657;)Lnet/minecraft/class_2680;"),
 			"net/minecraft/class_309", List.of("method_1466(JILnet/minecraft/class_11908;)V", "method_1457(JLnet/minecraft/class_11905;)V"));
 	private final ClassCache classCache;
 
@@ -65,13 +72,6 @@ public class OptifineInjector {
 		Consumer<ClassNode> transformer = target -> {
 			StartupLog.record("patch-start-" + target.name);
 			log("Patching class " + target.name);
-
-			//Avoid double patching things, not that this should happen
-			if (!patched.add(target.name)) {
-				StartupLog.record("patch-skip-duplicate-" + target.name);
-				System.err.println("Already patched " + target.name);
-				return;
-			}
 
 			//Skip applying class patches we veto
 			if (OptifineFixer.INSTANCE.shouldSkip(target.name)) {
@@ -179,7 +179,7 @@ public class OptifineInjector {
 	}
 
 	private ClassNode getSourceClassNode(ClassNode classNode) {
-		byte[] bytes = classCache.popClass(classNode.name);
+		byte[] bytes = classCache.getClass(classNode.name);
 		if(bytes == null) {
 			throw new RuntimeException("Failed to find patched class for: " + classNode.name);
 		}

@@ -1,11 +1,5 @@
 package me.modmuss50.optifabric.compat.full_slabs;
 
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.ModContainer;
-import net.fabricmc.loader.api.metadata.ModMetadata;
-import net.fabricmc.loader.util.version.SemanticVersionImpl;
-import net.fabricmc.loader.util.version.SemanticVersionPredicateParser;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnList;
@@ -25,11 +19,6 @@ import me.modmuss50.optifabric.util.RemappingUtils;
 public class FullSlabsMixinPlugin extends InterceptingMixinPlugin {
 	@Override
 	public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-		if (isMinecraftAtLeast(">=1.21")) {
-			log("full-slabs-skip target=" + targetClassName + " mixin=" + mixinClassName + " minecraft>=1.21");
-			return false;
-		}
-
 		return true;
 	}
 
@@ -65,18 +54,5 @@ public class FullSlabsMixinPlugin extends InterceptingMixinPlugin {
 	private static void log(String message) {
 		System.err.println("[OptiFabric] " + message);
 		System.err.flush();
-	}
-
-	private static boolean isMinecraftAtLeast(String versionRange) {
-		ModContainer minecraft = FabricLoader.getInstance().getModContainer("minecraft").orElse(null);
-		if (minecraft == null) return false;
-
-		ModMetadata metadata = minecraft.getMetadata();
-		try {
-			SemanticVersionImpl version = new SemanticVersionImpl(metadata.getVersion().getFriendlyString(), false);
-			return SemanticVersionPredicateParser.create(versionRange).test(version);
-		} catch (RuntimeException e) {
-			return false;
-		}
 	}
 }

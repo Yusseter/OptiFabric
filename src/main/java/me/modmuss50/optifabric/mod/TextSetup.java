@@ -8,8 +8,6 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-import net.fabricmc.tinyremapper.IMappingProvider.Member;
-
 import me.modmuss50.optifabric.util.RemappingUtils;
 
 import com.chocohead.mm.api.ClassTinkerers;
@@ -26,8 +24,10 @@ public class TextSetup implements Runnable {
 						InsnList instructions = new InsnList();
 
 						instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
-						Member literal = RemappingUtils.mapMethod("class_2561", "method_43470", "(Ljava/lang/String;)Lnet/minecraft/class_5250;");
-						instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, literal.owner, literal.name, literal.desc, true));
+						String literalOwner = RemappingUtils.getClassName("class_2561");
+						String literalName = RemappingUtils.getMethodName("class_2561", "method_43470", "(Ljava/lang/String;)Lnet/minecraft/class_5250;");
+						String literalDesc = RemappingUtils.mapMethodDescriptor("(Ljava/lang/String;)Lnet/minecraft/class_5250;");
+						instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, literalOwner, literalName, literalDesc, true));
 						instructions.add(new InsnNode(Opcodes.ARETURN));
 
 						method.instructions = instructions;

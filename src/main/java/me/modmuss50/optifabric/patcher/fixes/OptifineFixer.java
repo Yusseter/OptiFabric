@@ -46,6 +46,10 @@ public class OptifineFixer {
 
 		//net/minecraft/client/render/model/BakedModelManager
 		registerFix("class_1092", new BakedModelManagerFix());
+		registerFix("class_1092$1", new BakedModelManagerInnerFix());
+
+		//net/minecraft/client/render/item/model/BasicItemModel
+		registerFix("class_10430", new BasicItemModelFix());
 
 		//net/minecraft/client/render/block/BlockRenderManager
 		registerFix("class_776", new BlockRenderManagerFix());
@@ -53,11 +57,14 @@ public class OptifineFixer {
 		//net/minecraft/client/render/WorldRenderer
 		registerFix("class_761", new WorldRendererFix());
 
+		//net/minecraft/client/gui/hud/InGameOverlayRenderer
+		registerFix("class_4603", new InGameOverlayRendererFix());
+
 		//net/minecraft/client/render/model/json/ModelOverrideList
 		registerFix("class_806", new ModelOverrideListFix());
 
-		if (FabricLoader.getInstance().isModLoaded("fabric-rendering-fluids-v1") && isMinecraftBefore("1.21")) {
-			registerFix("class_775", "me.modmuss50.optifabric.compat.fabricrenderingfluids.FluidRendererFix");
+		if (FabricLoader.getInstance().isModLoaded("fabric-rendering-fluids-v1")) {
+			registerFix("class_775", new FluidRendererFix());
 		}
 
 		if (FabricLoader.getInstance().isModLoaded("uglyscoreboardfix")) {

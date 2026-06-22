@@ -48,11 +48,21 @@ public class OptifabricSetup implements Runnable {
 		System.err.flush();
 	}
 
+	private static void addMixinConfiguration(String config) {
+		if (config.startsWith("optifabric.compat.") && isPresent("minecraft", ">=1.21")) {
+			log("Skipping excluded 1.21 compat mixin config " + config);
+			return;
+		}
+
+		Mixins.addConfiguration(config);
+	}
+
 	//This is called early on to allow us to get the transformers in beofore minecraft starts
 	@Override
 	public void run() {
 		log("Early setup started");
 		StartupLog.record("optifabric-setup-run");
+		installShutdownDiagnostics();
 		startStartupHeartbeat();
 		OptifineInjector injector;
 		try {
@@ -143,37 +153,34 @@ public class OptifabricSetup implements Runnable {
 			}
 		};
 
-		boolean minecraftAtLeast121 = isPresent("minecraft", ">=1.21");
-		log("Minecraft >= 1.21 gate: " + minecraftAtLeast121);
-
-		if (!minecraftAtLeast121 && isPresent("fabric-renderer-api-v1")) {
+		if (isPresent("fabric-renderer-api-v1")) {
 			log("Adding fabric-renderer-api compat mixins");
 			if (isPresent("minecraft", ">=1.19")) {
-				Mixins.addConfiguration("optifabric.compat.fabric-renderer-api.new-mixins.json");
+				addMixinConfiguration("optifabric.compat.fabric-renderer-api.new-mixins.json");
 			} else {
-				Mixins.addConfiguration("optifabric.compat.fabric-renderer-api.mixins.json");
+				addMixinConfiguration("optifabric.compat.fabric-renderer-api.mixins.json");
 			}
 		}
 
-		if (!minecraftAtLeast121 && isPresent("fabric-rendering-v1", ">=1.5.0") && particlesPresent.getAsBoolean()) {
+		if (isPresent("fabric-rendering-v1", ">=1.5.0") && particlesPresent.getAsBoolean()) {
 			if (isPresent("minecraft", ">=1.19.3")) {
-				Mixins.addConfiguration("optifabric.compat.fabric-rendering.new-mixins.json");
+				addMixinConfiguration("optifabric.compat.fabric-rendering.new-mixins.json");
 			} else {
-				Mixins.addConfiguration("optifabric.compat.fabric-rendering.mixins.json");
+				addMixinConfiguration("optifabric.compat.fabric-rendering.mixins.json");
 			}
 		}
-		if (!minecraftAtLeast121 && (isPresent("fabric-rendering-v1", ">=1.13.0 <2.0") || isPresent("fabric-rendering-v1", ">=2.1.0"))) {
-			Mixins.addConfiguration("optifabric.compat.fabric-rendering.extra-mixins.json");
+		if (isPresent("fabric-rendering-v1", ">=1.13.0 <2.0") || isPresent("fabric-rendering-v1", ">=2.1.0")) {
+			addMixinConfiguration("optifabric.compat.fabric-rendering.extra-mixins.json");
 		}
 
-		if (!minecraftAtLeast121 && isPresent("fabric-block-view-api-v2")) {
-			Mixins.addConfiguration("optifabric.compat.fabric-block-view-api.mixins.json");
+		if (isPresent("fabric-block-view-api-v2")) {
+			addMixinConfiguration("optifabric.compat.fabric-block-view-api.mixins.json");
 
 			if (isPresent("fabric-rendering-data-attachment-v1")) {
-				Mixins.addConfiguration("optifabric.compat.fabric-rendering-data.mixins.json");
+				addMixinConfiguration("optifabric.compat.fabric-rendering-data.mixins.json");
 			}
-		} else if (!minecraftAtLeast121 && isPresent("fabric-rendering-data-attachment-v1")) {
-			Mixins.addConfiguration("optifabric.compat.fabric-rendering-data.mixins.json");
+		} else if (isPresent("fabric-rendering-data-attachment-v1")) {
+			addMixinConfiguration("optifabric.compat.fabric-rendering-data.mixins.json");
 
 			if (isPresent("fabric-rendering-data-attachment-v1", ">0.3.0")) {
 				//0.43.1+ and with a patch to ChunkRendererRegionBuilder
@@ -183,7 +190,7 @@ public class OptifabricSetup implements Runnable {
 					for (MethodNode method : node.methods) {
 						if ("createRegion".equals(method.name) && desc.equals(method.desc)) {
 							assert isPresent("minecraft", ">=1.18-rc.1");
-							Mixins.addConfiguration("optifabric.compat.fabric-rendering-data.bonus-mixins.json");
+							addMixinConfiguration("optifabric.compat.fabric-rendering-data.bonus-mixins.json");
 							break;
 						}
 					}
@@ -196,7 +203,7 @@ public class OptifabricSetup implements Runnable {
 					for (MethodNode method : node.methods) {
 						if ("generateCache".equals(method.name) && desc.equals(method.desc)) {
 							assert isPresent("minecraft", ">=1.18-beta.1");
-							Mixins.addConfiguration("optifabric.compat.fabric-rendering-data.extra-mixins.json");
+							addMixinConfiguration("optifabric.compat.fabric-rendering-data.extra-mixins.json");
 							break;
 						}
 					}
@@ -204,7 +211,7 @@ public class OptifabricSetup implements Runnable {
 			}
 		}
 
-		if (!minecraftAtLeast121 && isPresent("fabric-renderer-indigo")) {
+		if (isPresent("fabric-renderer-indigo")) {
 			log("Adding fabric-renderer-indigo compat mixins");
 			if (isPresent("minecraft", ">=1.19")) {
 				injector.predictFuture(RemappingUtils.getClassName("class_776")).ifPresent(node -> {//BlockRenderManager
@@ -212,18 +219,18 @@ public class OptifabricSetup implements Runnable {
 
 					for (MethodNode method : node.methods) {
 						if ("renderBatched".equals(method.name) && method.desc.endsWith(desc)) {
-							Mixins.addConfiguration("optifabric.compat.indigo.newer-mixins.json");
+							addMixinConfiguration("optifabric.compat.indigo.newer-mixins.json");
 							return;
 						}
 					}
 
-					Mixins.addConfiguration("optifabric.compat.indigo.new-mixins.json");
+					addMixinConfiguration("optifabric.compat.indigo.new-mixins.json");
 				});
 			} else {
 				if (isPresent("fabric-renderer-indigo", ">=0.5.0")) {//First released in 0.51.0+1.18.2
-					Mixins.addConfiguration("optifabric.compat.indigo.mixins.json");
+					addMixinConfiguration("optifabric.compat.indigo.mixins.json");
 				} else {
-					Mixins.addConfiguration("optifabric.compat.indigo.old-mixins.json");
+					addMixinConfiguration("optifabric.compat.indigo.old-mixins.json");
 				}
 
 				injector.predictFuture(RemappingUtils.getClassName("class_846$class_849")).ifPresent(node -> {//ChunkBuilder$ChunkData
@@ -235,88 +242,87 @@ public class OptifabricSetup implements Runnable {
 						}
 					}
 
-					Mixins.addConfiguration("optifabric.compat.indigo.extra-mixins.json");
+					addMixinConfiguration("optifabric.compat.indigo.extra-mixins.json");
 				});
 			}
 		}
 
-		if (!isPresent("minecraft", ">=1.21") && isPresent("fabric-item-api-v1", ">=1.1.0") && isPresent("minecraft", "1.16.x")) {
-			Mixins.addConfiguration("optifabric.compat.fabric-item-api.mixins.json");
+		if (isPresent("fabric-item-api-v1", ">=1.1.0") && isPresent("minecraft", "1.16.x")) {
+			addMixinConfiguration("optifabric.compat.fabric-item-api.mixins.json");
 		}
 
-		if (!isPresent("minecraft", ">=1.21") && isPresent("fabric-screen-api-v1")) {
+		if (isPresent("fabric-screen-api-v1")) {
 			if (isPresent("fabric-screen-api-v1", ">=2.0.16")) {
 				//0.92.1 moved to use Mixin Extra so no longer an issue
 			} else if (isPresent("minecraft", ">=1.20.2")) {
-				Mixins.addConfiguration("optifabric.compat.fabric-screen-api.new5er-mixins.json");
+				addMixinConfiguration("optifabric.compat.fabric-screen-api.new5er-mixins.json");
 			} else if (isPresent("minecraft", ">=1.20")) {
-				Mixins.addConfiguration("optifabric.compat.fabric-screen-api.new4er-mixins.json");
+				addMixinConfiguration("optifabric.compat.fabric-screen-api.new4er-mixins.json");
 			} else if (isPresent("fabric-api", ">=0.81.0")) {
-				Mixins.addConfiguration("optifabric.compat.fabric-screen-api.new3er-mixins.json");
+				addMixinConfiguration("optifabric.compat.fabric-screen-api.new3er-mixins.json");
 			} else if (isPresent("minecraft", ">=1.19.3")) {
-				Mixins.addConfiguration("optifabric.compat.fabric-screen-api.newerer-mixins.json");
+				addMixinConfiguration("optifabric.compat.fabric-screen-api.newerer-mixins.json");
 			} else if (isPresent("minecraft", ">=1.17-alpha.21.10.a")) {
 				if (farPlanePresent.getAsBoolean()) {
-					Mixins.addConfiguration("optifabric.compat.fabric-screen-api.newer-mixins.json");
+					addMixinConfiguration("optifabric.compat.fabric-screen-api.newer-mixins.json");
 				} else {
-					Mixins.addConfiguration("optifabric.compat.fabric-screen-api.new-mixins.json");
+					addMixinConfiguration("optifabric.compat.fabric-screen-api.new-mixins.json");
 				}
 			} else {
-				Mixins.addConfiguration("optifabric.compat.fabric-screen-api.mixins.json");
+				addMixinConfiguration("optifabric.compat.fabric-screen-api.mixins.json");
 			}
 			usingScreenAPI = true;
 		}
 
-		if (!isPresent("minecraft", ">=1.21") && isPresent("fabric-lifecycle-events-v1", ">=1.4.6") && isPresent("minecraft", "1.17.x")) {
-			Mixins.addConfiguration("optifabric.compat.fabric-lifecycle-events.mixins.json");
-		} else if (!isPresent("minecraft", ">=1.21") && isPresent("fabric-lifecycle-events-v1", ">=2.0.8")) {
-			Mixins.addConfiguration("optifabric.compat.fabric-lifecycle-events.new-mixins.json");
+		if (isPresent("fabric-lifecycle-events-v1", ">=1.4.6") && isPresent("minecraft", "1.17.x")) {
+			addMixinConfiguration("optifabric.compat.fabric-lifecycle-events.mixins.json");
+		} else if (isPresent("fabric-lifecycle-events-v1", ">=2.0.8")) {
+			addMixinConfiguration("optifabric.compat.fabric-lifecycle-events.new-mixins.json");
 		}
 
-		if (!isPresent("minecraft", ">=1.21") && isPresent("fabric-model-loading-api-v1")) {
-			Mixins.addConfiguration("optifabric.compat.fabric-model-loading-api.mixins.json");
+		if (isPresent("fabric-model-loading-api-v1")) {
+			addMixinConfiguration("optifabric.compat.fabric-model-loading-api.mixins.json");
 		}
 
-		Mixins.addConfiguration("optifabric.optifine.mixins.json");
+		addMixinConfiguration("optifabric.optifine.mixins.json");
 		if (OptifabricSetup.isPresent("minecraft", "<=1.19.2")) {
-			Mixins.addConfiguration("optifabric.optifine.old-mixins.json");
+			addMixinConfiguration("optifabric.optifine.old-mixins.json");
 		} else {
-			Mixins.addConfiguration("optifabric.optifine.new-mixins.json");
+			addMixinConfiguration("optifabric.optifine.new-mixins.json");
 		}
 
-		if (!isPresent("minecraft", ">=1.21")) {
 		if (isPresent("fabricloader", ">=0.13.0") && (isPresent("cloth-client-events-v0", ">=3.1.58") || isPresent("cloth-client-events-v0", ">=2.1.60 <3.0") || isPresent("cloth-client-events-v0", ">=1.6.59 <2.0"))) {
 			// no mixins are needed -- cloth had a workaround for https://github.com/FabricMC/Mixin/issues/80
 			// but it is now fixed in fabricloader
 		} else if (isPresent("cloth-client-events-v0", ">=2.0")) {
 			if (farPlanePresent.getAsBoolean()) {
-				Mixins.addConfiguration("optifabric.compat.cloth.newer-mixins.json");
+				addMixinConfiguration("optifabric.compat.cloth.newer-mixins.json");
 			} else {
-				Mixins.addConfiguration("optifabric.compat.cloth.new-mixins.json");
+				addMixinConfiguration("optifabric.compat.cloth.new-mixins.json");
 			}
 		} else if (isPresent("cloth-client-events-v0")) {
-			Mixins.addConfiguration("optifabric.compat.cloth.mixins.json");
+			addMixinConfiguration("optifabric.compat.cloth.mixins.json");
 		}
 
 		if (isPresent("clothesline")) {
-			Mixins.addConfiguration("optifabric.compat.clothesline.mixins.json");
+			addMixinConfiguration("optifabric.compat.clothesline.mixins.json");
 		}
 
 		if (isPresent("trumpet-skeleton")) {
-			Mixins.addConfiguration("optifabric.compat.trumpet-skeleton.mixins.json");
+			addMixinConfiguration("optifabric.compat.trumpet-skeleton.mixins.json");
 		}
 
 		if (isPresent("multiconnect", ">1.3.14 <1.6-beta.1")) {
-			Mixins.addConfiguration("optifabric.compat.multiconnect.mixins.json");
+			addMixinConfiguration("optifabric.compat.multiconnect.mixins.json");
 		}
 
 		if (isPresent("now-playing", ">=1.1.0")) {
-			Mixins.addConfiguration("optifabric.compat.now-playing.mixins.json");
+			addMixinConfiguration("optifabric.compat.now-playing.mixins.json");
 		}
 
 		if (isPresent("origins", mod -> compareVersions(Pattern.compile("^1\\.16(\\.\\d)?-").matcher(mod.getVersion().getFriendlyString()).find() ? ">=1.16-0.2.0" : ">=0.4.1 <1.0", mod))) {
 			if (isPresent("origins", mod -> !Pattern.compile("^1\\.16(\\.\\d)?-").matcher(mod.getVersion().getFriendlyString()).find() || compareVersions(">=1.16.3-0.4.0", mod))) {
-				Mixins.addConfiguration("optifabric.compat.origins.mixins.json");
+				addMixinConfiguration("optifabric.compat.origins.mixins.json");
 			}
 
 			injector.predictFuture(RemappingUtils.getClassName("class_979")).ifPresent(node -> {//ElytraFeatureRenderer
@@ -324,7 +330,7 @@ public class OptifabricSetup implements Runnable {
 
 				for (MethodNode method : node.methods) {
 					if ("shouldRender".equals(method.name) && desc.equals(method.desc)) {
-						Mixins.addConfiguration("optifabric.compat.origins.extra-mixins.json");
+						addMixinConfiguration("optifabric.compat.origins.extra-mixins.json");
 						break;
 					}
 				}
@@ -333,87 +339,87 @@ public class OptifabricSetup implements Runnable {
 
 
 		if (isPresent("apoli", ">=2.3.1")) {
-			Mixins.addConfiguration("optifabric.compat.apoli-newerer.mixins.json");
+			addMixinConfiguration("optifabric.compat.apoli-newerer.mixins.json");
 
 			if (setupFogPresent.getAsBoolean()) {
-				Mixins.addConfiguration("optifabric.compat.apoli-newerer.extra-mixins.json");
+				addMixinConfiguration("optifabric.compat.apoli-newerer.extra-mixins.json");
 			}
 		} else if (isPresent("apoli", ">=2.2.2")) {
-			Mixins.addConfiguration("optifabric.compat.apoli-newer.mixins.json");
+			addMixinConfiguration("optifabric.compat.apoli-newer.mixins.json");
 		} else if (isPresent("apoli", ">=2.0")) {
-			Mixins.addConfiguration("optifabric.compat.apoli-new.mixins.json");
+			addMixinConfiguration("optifabric.compat.apoli-new.mixins.json");
 		} else if (isPresent("apoli")) {
-			Mixins.addConfiguration("optifabric.compat.apoli.mixins.json");
+			addMixinConfiguration("optifabric.compat.apoli.mixins.json");
 		}
 
 		if (isPresent("additionalentityattributes") && setupFogPresent.getAsBoolean()) {
-			Mixins.addConfiguration("optifabric.compat.additional-entity-attributes.mixins.json");
+			addMixinConfiguration("optifabric.compat.additional-entity-attributes.mixins.json");
 		}
 
 		if (isPresent("staffofbuilding")) {
-			Mixins.addConfiguration("optifabric.compat.staffofbuilding.mixins.json");
+			addMixinConfiguration("optifabric.compat.staffofbuilding.mixins.json");
 		}
 
 		if (isPresent("sandwichable")) {
 			if (isPresent("sandwichable", "<=1.2-rc4 >=1.2-alpha1")) {
-				Mixins.addConfiguration("optifabric.compat.sandwichable.mixins.json");
+				addMixinConfiguration("optifabric.compat.sandwichable.mixins.json");
 			} else if (isPresent("sandwichable", "<1.2-alpha1")) {
-				Mixins.addConfiguration("optifabric.compat.sandwichable-old.mixins.json");
+				addMixinConfiguration("optifabric.compat.sandwichable-old.mixins.json");
 			} else {//Versions like 1.3.a aren't SemVer, so won't hit either case above
-				Mixins.addConfiguration("optifabric.compat.sandwichable.new-mixins.json");
+				addMixinConfiguration("optifabric.compat.sandwichable.new-mixins.json");
 			}
 		}
 
 		if (isPresent("astromine", "<1.6")) {//Only needed for the 1.16.1 versions
-			Mixins.addConfiguration("optifabric.compat.astromine.mixins.json");
+			addMixinConfiguration("optifabric.compat.astromine.mixins.json");
 		}
 
 		if (isPresent("carpet")) {
 			if (!isPresent("minecraft", ">=1.17")) {
-				Mixins.addConfiguration("optifabric.compat.carpet.mixins.json");
+				addMixinConfiguration("optifabric.compat.carpet.mixins.json");
 			}
 
 			if (particlesPresent.getAsBoolean()) {
 				if (isPresent("minecraft", ">=1.18.2")) {
-					Mixins.addConfiguration("optifabric.compat.carpet.extra-new-mixins.json");
+					addMixinConfiguration("optifabric.compat.carpet.extra-new-mixins.json");
 				} else {
-					Mixins.addConfiguration("optifabric.compat.carpet.extra-mixins.json");
+					addMixinConfiguration("optifabric.compat.carpet.extra-mixins.json");
 				}
 			}
 		}
 
 		if (isPresent("hctm-base")) {
-			Mixins.addConfiguration("optifabric.compat.hctm.mixins.json");
+			addMixinConfiguration("optifabric.compat.hctm.mixins.json");
 		}
 
 		if (isPresent("mubble", "<4.0-pre5")) {
-			Mixins.addConfiguration("optifabric.compat.mubble.mixins.json");
+			addMixinConfiguration("optifabric.compat.mubble.mixins.json");
 		}
 
 		if (isPresent("dawn", ">=1.3 <=1.4")) {
-			Mixins.addConfiguration("optifabric.compat.dawn.older-mixins.json");
+			addMixinConfiguration("optifabric.compat.dawn.older-mixins.json");
 		} else if (isPresent("dawn", ">1.4 <1.5")) {
-			Mixins.addConfiguration("optifabric.compat.dawn.old-mixins.json");
+			addMixinConfiguration("optifabric.compat.dawn.old-mixins.json");
 		} else if (isPresent("dawn", ">=1.5 <1.8")) {
-			Mixins.addConfiguration("optifabric.compat.dawn.mixins.json");
+			addMixinConfiguration("optifabric.compat.dawn.mixins.json");
 		}
 
 		if (isPresent("phormat")) {
-			Mixins.addConfiguration("optifabric.compat.phormat.mixins.json");
+			addMixinConfiguration("optifabric.compat.phormat.mixins.json");
 		}
 
 		if (isPresent("chat_heads", "<0.2")) {
-			Mixins.addConfiguration("optifabric.compat.chat-heads.mixins.json");
+			addMixinConfiguration("optifabric.compat.chat-heads.mixins.json");
 		}
 
 		if (isPresent("mmorpg")) {
-			Mixins.addConfiguration("optifabric.compat.age-of-exile.mixins.json");
+			addMixinConfiguration("optifabric.compat.age-of-exile.mixins.json");
 		}
 
 		if (isPresent("charm", ">=2.0 <2.1")) {
-			Mixins.addConfiguration("optifabric.compat.charm-older.mixins.json");
+			addMixinConfiguration("optifabric.compat.charm-older.mixins.json");
 		} else if (isPresent("charm", ">=2.1 <3.0")) {
-			Mixins.addConfiguration("optifabric.compat.charm-old.mixins.json");
+			addMixinConfiguration("optifabric.compat.charm-old.mixins.json");
 
 			if (isPresent("charm", ">=2.2.2")) {
 				injector.predictFuture(RemappingUtils.getClassName("class_156")).ifPresent(node -> {//Util
@@ -422,65 +428,65 @@ public class OptifabricSetup implements Runnable {
 
 					for (MethodNode method : node.methods) {
 						if (getChoiceTypeInternal.equals(method.name) && desc.equals(method.desc)) {
-							Mixins.addConfiguration("optifabric.compat.charm-plus.mixins.json");
+							addMixinConfiguration("optifabric.compat.charm-plus.mixins.json");
 							break;
 						}
 					}
 				});
 			}
 		} else if (isPresent("charm", ">=3.0 <4.0")) {
-			Mixins.addConfiguration("optifabric.compat.charm.mixins.json");
+			addMixinConfiguration("optifabric.compat.charm.mixins.json");
 		} else if (isPresent("charm", ">=4.0")) {
-			Mixins.addConfiguration("optifabric.compat.charm-new.mixins.json");
+			addMixinConfiguration("optifabric.compat.charm-new.mixins.json");
 		}
 
 		if (isPresent("voxelmap")) {
-			Mixins.addConfiguration("optifabric.compat.voxelmap.mixins.json");
+			addMixinConfiguration("optifabric.compat.voxelmap.mixins.json");
 		}
 
 		if (isPresent("appliedenergistics2")) {
-			Mixins.addConfiguration("optifabric.compat.ae2.mixins.json");
+			addMixinConfiguration("optifabric.compat.ae2.mixins.json");
 		}
 
 		if (isPresent("images", "=0.3.0")) {
-			Mixins.addConfiguration("optifabric.compat.images-older.mixins.json");
+			addMixinConfiguration("optifabric.compat.images-older.mixins.json");
 		} else if (isPresent("images", ">=0.3.1 <1.0.1")) {
-			Mixins.addConfiguration("optifabric.compat.images-old.mixins.json");
+			addMixinConfiguration("optifabric.compat.images-old.mixins.json");
 		} else if (isPresent("images", ">=1.0.1")) {
-			Mixins.addConfiguration("optifabric.compat.images.mixins.json");
+			addMixinConfiguration("optifabric.compat.images.mixins.json");
 		}
 
 		if (isPresent("architectury", ">=9.0.6")) {
-			Mixins.addConfiguration("optifabric.compat.architectury-AB.new4er-mixins.json");
+			addMixinConfiguration("optifabric.compat.architectury-AB.new4er-mixins.json");
 		} else if (isPresent("architectury", ">=7.0.52")) {
-			Mixins.addConfiguration("optifabric.compat.architectury-AB.newererer-mixins.json");
+			addMixinConfiguration("optifabric.compat.architectury-AB.newererer-mixins.json");
 		} else if (isPresent("architectury", ">=3.7")) {
-			Mixins.addConfiguration("optifabric.compat.architectury-AB.newerer-mixins.json");
+			addMixinConfiguration("optifabric.compat.architectury-AB.newerer-mixins.json");
 		} else if (isPresent("architectury", ">=2.0")) {
 			assert isPresent("minecraft", ">=1.17-beta.1");
 			if (farPlanePresent.getAsBoolean()) {
-				Mixins.addConfiguration("optifabric.compat.architectury-AB.newer-mixins.json");
+				addMixinConfiguration("optifabric.compat.architectury-AB.newer-mixins.json");
 			} else {
-				Mixins.addConfiguration("optifabric.compat.architectury-AB.new-mixins.json");
+				addMixinConfiguration("optifabric.compat.architectury-AB.new-mixins.json");
 			}
 		} else if (isPresent("architectury", ">=1.0.20")) {
-			Mixins.addConfiguration("optifabric.compat.architectury-B.mixins.json");
+			addMixinConfiguration("optifabric.compat.architectury-B.mixins.json");
 		} else if (isPresent("architectury", ">=1.0.4")) {
-			Mixins.addConfiguration("optifabric.compat.architectury-A.mixins.json");
+			addMixinConfiguration("optifabric.compat.architectury-A.mixins.json");
 		}
 
 		if (isPresent("frex", ">=4.3")) {
-			Mixins.addConfiguration("optifabric.compat.frex.mixins.json");
+			addMixinConfiguration("optifabric.compat.frex.mixins.json");
 		} else if (isPresent("frex", "=4.2")) {
-			Mixins.addConfiguration("optifabric.compat.frex-old.mixins.json");
+			addMixinConfiguration("optifabric.compat.frex-old.mixins.json");
 		}
 
 		if (isPresent("full_slabs", ">=1.0.2")) {
-			Mixins.addConfiguration("optifabric.compat.full-slabs.mixins.json");
+			addMixinConfiguration("optifabric.compat.full-slabs.mixins.json");
 		}
 
 		if (isPresent("amecsapi", "<1.1.2")) {
-			Mixins.addConfiguration("optifabric.compat.amecsapi.mixins.json");
+			addMixinConfiguration("optifabric.compat.amecsapi.mixins.json");
 
 			ClassWriter writer = new ClassWriter(0);
 			writer.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, "null", null, "java/lang/Object", null);
@@ -489,13 +495,13 @@ public class OptifabricSetup implements Runnable {
 		}
 
 		if (isPresent("pswg")) {
-			Mixins.addConfiguration("optifabric.compat.pswg.mixins.json");
+			addMixinConfiguration("optifabric.compat.pswg.mixins.json");
 
 			if (isPresent("pswg", ">=1.16.4-0.0.15")) {
 				injector.predictFuture(RemappingUtils.getClassName("class_276")).ifPresent(node -> {//FrameBuffer
 					for (FieldNode field : node.fields) {
 						if ("stencilEnabled".equals(field.name) && "Z".equals(field.desc)) {
-							Mixins.addConfiguration("optifabric.compat.pswg.extra-mixins.json");
+							addMixinConfiguration("optifabric.compat.pswg.extra-mixins.json");
 							break;
 						}
 					}
@@ -504,27 +510,27 @@ public class OptifabricSetup implements Runnable {
 		}
 
 		if (isPresent("custom-fog", ">=1.2")) {
-			Mixins.addConfiguration("optifabric.compat.custom-fog.mixins.json");
+			addMixinConfiguration("optifabric.compat.custom-fog.mixins.json");
 		}
 
 		if (isPresent("smooth-chunks")) {
-			Mixins.addConfiguration("optifabric.compat.smooth-chunks.mixins.json");
+			addMixinConfiguration("optifabric.compat.smooth-chunks.mixins.json");
 		}
 
 		if (isPresent("enhancedcelestials") && isPresent("minecraft", "<1.19")) {
 			if (isPresent("enhancedcelestials", ">=2.0.0")) {
-				Mixins.addConfiguration("optifabric.compat.enhancedcelestials.new-mixins.json");
+				addMixinConfiguration("optifabric.compat.enhancedcelestials.new-mixins.json");
 			} else {
-				Mixins.addConfiguration("optifabric.compat.enhancedcelestials.mixins.json");
+				addMixinConfiguration("optifabric.compat.enhancedcelestials.mixins.json");
 			}
 		}
 
 		if (isPresent("cullparticles") && particlesPresent.getAsBoolean()) {
-			Mixins.addConfiguration("optifabric.compat.cullparticles.mixins.json");
+			addMixinConfiguration("optifabric.compat.cullparticles.mixins.json");
 		}
 
 		if (isPresent("the_aether", "<1.17.1-1.5.0")) {
-			Mixins.addConfiguration("optifabric.compat.aether.mixins.json");
+			addMixinConfiguration("optifabric.compat.aether.mixins.json");
 		}
 
 		if (isPresent("stacc")) {
@@ -534,9 +540,9 @@ public class OptifabricSetup implements Runnable {
 				for (MethodNode method : node.methods) {
 					if ("writeItemStack".equals(method.name) && desc.equals(method.desc)) {
 						if (isPresent("stacc", ">=1.2")) {
-							Mixins.addConfiguration("optifabric.compat.stacc.mixins.json");
+							addMixinConfiguration("optifabric.compat.stacc.mixins.json");
 						} else {
-							Mixins.addConfiguration("optifabric.compat.stacc.old-mixins.json");
+							addMixinConfiguration("optifabric.compat.stacc.old-mixins.json");
 						}
 						break;
 					}
@@ -545,28 +551,27 @@ public class OptifabricSetup implements Runnable {
 		}
 
 		if (isPresent("bannerpp")) {
-			Mixins.addConfiguration("optifabric.compat.bannerpp.mixins.json");
+			addMixinConfiguration("optifabric.compat.bannerpp.mixins.json");
 		}
 
 		if (isPresent("replaymod")) {
 			if (isPresent("minecraft", ">=1.18.1")) {
-				Mixins.addConfiguration("optifabric.compat.replaymod.newer-mixins.json");
+				addMixinConfiguration("optifabric.compat.replaymod.newer-mixins.json");
 			} else if (isPresent("minecraft", ">=1.17")) {
-				Mixins.addConfiguration("optifabric.compat.replaymod.new-mixins.json");
+				addMixinConfiguration("optifabric.compat.replaymod.new-mixins.json");
 			} else {
-				Mixins.addConfiguration("optifabric.compat.replaymod.mixins.json");
+				addMixinConfiguration("optifabric.compat.replaymod.mixins.json");
 			}
 		}
 
 		if (isPresent("zoomify")) {
-			Mixins.addConfiguration("optifabric.compat.zoomify.mixins.json");
+			addMixinConfiguration("optifabric.compat.zoomify.mixins.json");
 		}
 
 		if (isPresent("borderlessmining", ">=1.1.6")) {
-			Mixins.addConfiguration("optifabric.compat.borderlessmining.new-mixins.json");
+			addMixinConfiguration("optifabric.compat.borderlessmining.new-mixins.json");
 		} else if (isPresent("borderlessmining", ">=1.1.3")) {
-			Mixins.addConfiguration("optifabric.compat.borderlessmining.mixins.json");
-		}
+			addMixinConfiguration("optifabric.compat.borderlessmining.mixins.json");
 		}
 
 		if (isPresent("fabricloader", ">=0.12.3")) {
@@ -581,6 +586,27 @@ public class OptifabricSetup implements Runnable {
 				}
 			}
 		}
+	}
+
+	private static void installShutdownDiagnostics() {
+		StartupLog.record("diagnostics-install");
+		Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
+			StartupLog.record("uncaught-" + thread.getName() + "-" + error);
+			for (StackTraceElement element : error.getStackTrace()) {
+				StartupLog.record("uncaught-stack-" + thread.getName() + " " + element);
+			}
+		});
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			StartupLog.record("jvm-shutdown-hook-start");
+			Thread.getAllStackTraces().forEach((thread, stack) -> {
+				StartupLog.record("jvm-thread " + thread.getName() + " state=" + thread.getState() + " daemon=" + thread.isDaemon());
+				int limit = Math.min(stack.length, 12);
+				for (int i = 0; i < limit; i++) {
+					StartupLog.record("jvm-thread-stack " + thread.getName() + " " + stack[i]);
+				}
+			});
+			StartupLog.record("jvm-shutdown-hook-end");
+		}, "OptiFabric shutdown diagnostics"));
 	}
 
 	private static void validateFabricApiCompatibility() {

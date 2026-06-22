@@ -1,148 +1,145 @@
-# OptiFabric Debug Handover
+# OptiFabric 1.21.11 Handover
 
 ## Goal
 
-Get OptiFabric working on Minecraft 1.21.11 with OptiFine without crashing during startup, specifically past the `Reflector` initialization path that currently fails on `class_776`.
+Make OptiFabric run reliably with OptiFine on Minecraft `1.21.11`.
 
-## Runtime matrix
+The working target is:
 
 - Minecraft: `1.21.11`
 - Java: `21`
 - Fabric Loader: `0.17.3`
-- Fabric API at runtime: `0.141.4+1.21.11`
-- OptiFabric: `1.15.1`
+- Fabric API runtime: `0.141.4+1.21.11`
+- OptiFabric: `1.15.2`
 - OptiFine: `OptiFine_1.21.11_HD_U_J9.jar`
 - Mixin subsystem: `0.8.7`
 - MixinExtras: `0.5.0`
-- Loom: `0.2.7-SNAPSHOT`
 
-## Declared build versions
+## Current Workflow
 
-- `minecraft_version=1.21.11`
-- `yarn_mappings=1.21.11+build.3`
-- `loader_version=0.17.3`
-- `fabric_version=0.141.3+1.21.11`
-- `tiny_remapper_version=0.8.11`
-- `fabric_asm_version=v2.3`
-- `mod_version=1.15.1`
-- `maven_group=me.modmuss50`
-- `archives_base_name=optifabric`
+The workflow is now autonomous.
 
-## What we are doing
+The repo contains a copied local Minecraft runtime under:
 
-We are iterating on OptiFabric startup compatibility:
+- `.local/minecraft-runtime/.minecraft`
 
-1. Rebuild the mod jar.
-2. Replace the jar in the user’s mods folder.
-3. Run Minecraft once.
-4. Replace the repo `debug/` folder with the fresh output.
-5. Re-read only the fresh `debug/` contents.
-6. Apply the next targeted fix based on that run.
+Use that runtime for the normal build/test loop. Do not rely on the user manually launching Minecraft for each iteration.
 
-The working rule is that `debug/` is ephemeral and must not be treated as cached state.
+Expected loop:
 
-## Current state
+1. Inspect the current source, copied runtime, and available logs/artifacts.
+2. Rebuild OptiFabric.
+3. Install the rebuilt jar into `.local/minecraft-runtime/.minecraft/mods`.
+4. Launch Minecraft from the local runtime using Java 21.
+5. Capture logs, crashes, thread dumps, and class dumps directly.
+6. Diagnose the next failure from those local artifacts.
+7. Repeat until the local runtime reaches a useful running state.
 
-The latest fresh `debug/` run still crashes during OptiFine startup with:
+The user should only be asked for a Windows run when:
 
-- `java.lang.NoClassDefFoundError: Could not initialize class net.optifine.reflect.Reflector`
-- root cause remains `java.lang.RuntimeException: Mixin transformation of net.minecraft.class_776 failed`
+- local Linux/WSL testing reaches a stable point,
+- a problem looks platform-specific,
+- or a real Windows confirmation is needed before considering the fix done.
 
-The current evidence says the failure is still centered on `class_776` during OptiFine's initialization path.
+## Local Runtime Rules
 
-## What is fixed
+- Treat `.local/minecraft-runtime/.minecraft` as the primary test runtime.
+- Do not modify the user's real `.minecraft` folder.
+- Do not delete or move unrelated build artifacts.
+- Do not delete old build outputs unless the user explicitly asks.
+- Keep `.local/` untracked.
+- The copied runtime may contain cached `.optifine` output and generated logs that are useful for autonomous diagnosis.
 
-1. The missing output directory bug is fixed.
-   - `ZipUtils.transform(...)` now creates the parent directory before writing `Optifine-mapped.jar`.
-   - This removed the earlier `FileNotFoundException` for `.optifine/.../Optifine-mapped.jar`.
+## Build
 
-2. The runtime patchers for OptiFine-shaped classes are in place.
-   - `class_761` backfill exists.
-   - `class_1092` backfill exists.
-   - `class_776` backfill exists.
+Use Java 21 explicitly. The system Java may be older.
 
-3. The class dumps confirm those fixers are taking effect in the transformed runtime jar.
-   - `debug/optifabric-debug/net_minecraft_class_776.class`
-   - `debug/optifabric-debug/net_minecraft_class_761.class`
-   - `debug/optifabric-debug/net_minecraft_class_1092.class`
-   - `debug/optifabric-debug/net_minecraft_class_309.class`
+Known working build command:
 
-4. The build now succeeds under Java 21.
+```sh
+GRADLE_USER_HOME="$PWD/.local/gradle-home" ./gradlew build -Pjava21Home=/tmp/codex-jdk21/jdk
+```
 
-5. The build file still pins Fabric API module versions separately from the runtime log.
-   - `gradle.properties` declares `fabric_version=0.141.3+1.21.11`
-   - the fresh runtime log shows `fabric-api 0.141.4+1.21.11`
-   - this is a real version mismatch to keep in mind when comparing build config to runtime state
+Primary jar:
 
-## What we know from the fresh debug logs
+```text
+build/libs/optifabric-1.15.2.jar
+```
 
-1. `class_776` after patching contains:
-   - `method_3351`
-   - `method_23071`
-   - `method_3355`
-   - `method_3352`
-   - `method_3350`
-   - `method_3349`
-   - `method_3353`
-   - `renderBreakingTexture`
-   - `renderSingleBlock`
-   - `method_14491`
+Copied runtime mod path:
 
-2. The fresh `debug/latest.log` still ends at the same `class_776` transformation failure.
+```text
+.local/minecraft-runtime/.minecraft/mods/optifabric-1.15.2.jar
+```
 
-3. The fresh `debug/optifabric-startup.log` does not show the renderer plugin debug strings that were added earlier.
+## Local Launch
 
-## What is definitely not the issue anymore
+Use the copied runtime and Java 21. A known useful launch pattern is:
 
-1. The missing `.optifine/.../Optifine-mapped.jar` parent directory.
-   - That was the `FileNotFoundException`.
-   - It is fixed.
+```sh
+MCROOT="$PWD/.local/minecraft-runtime/.minecraft"
+CP="$(cat /tmp/optifabric-cp.txt)"
+ALSOFT_DRIVERS=null timeout 240s /tmp/codex-jdk21/jdk/bin/java \
+  -Xmx2G -Xms512M \
+  -DFabricMcEmu=' net.minecraft.client.main.Main ' \
+  -Djava.library.path="$MCROOT/natives" \
+  -cp "$CP" \
+  net.fabricmc.loader.impl.launch.knot.KnotClient \
+  --username CodexOffline \
+  --version fabric-loader-0.17.3-1.21.11 \
+  --gameDir "$MCROOT" \
+  --assetsDir "$MCROOT/assets" \
+  --assetIndex 29 \
+  --uuid 00000000000000000000000000000000 \
+  --accessToken 0 \
+  --userType msa \
+  --versionType release
+```
 
-2. Missing basic methods on the transformed `class_776`.
-   - The dumped class already contains the relevant methods.
+`ALSOFT_DRIVERS=null` avoids a WSL/OpenAL stall and should be used for local smoke tests.
 
-3. `class_761` or `class_1092` being incomplete.
-   - Their dumps show the fixers completed successfully.
+## Debug Artifacts
 
-4. The current failure being caused by `full_slabs` as an active mod path.
-   - The fresh loaded-mod log did not show it.
+The old user-assisted `debug/` folder can still be useful, but it is no longer the main feedback loop.
 
-## What is still suspect
+Use, in priority order:
 
-1. Some mixin path is still trying to transform `class_776`.
-   - The repo has direct `class_776` compat paths in:
-     - `compat/fabricrendererapi`
-     - `compat/full_slabs`
-     - `compat/indigo`
-   - The current runtime crash is still centered on that target class.
+1. Fresh logs and dumps generated from local autonomous launches.
+2. `.local/minecraft-runtime/.minecraft/logs/latest.log`
+3. `.local/minecraft-runtime/.minecraft/crash-reports/`
+4. `.local/minecraft-runtime/.minecraft/.optifine/`
+5. Any local run captures under `.local/run-captures/`
+6. `debug/` only when the user has provided a fresh Windows run or explicitly asks to analyze it.
 
-2. A mixin plugin gate may still be too permissive.
-   - The setup-level `minecraft >= 1.21` guard exists.
-   - Extra hard vetoes were added in:
-     - `RendererMixinPlugin`
-     - `FullSlabsMixinPlugin`
-   - The next run should confirm whether those vetoes are actually firing.
+If `debug/` conflicts with freshly generated local evidence, trust the local evidence unless the issue is clearly Windows-specific.
 
-3. The failing mixin may not be the one we were instrumenting.
-   - The fresh logs did not expose `renderer-preApply` / `renderer-skip`.
-   - That means the remaining culprit may be a different `class_776`-targeting path.
+## What Has Been Fixed
 
-## Important file references
+- `ZipUtils.transform(...)` now creates parent directories before writing mapped jars.
+- OptiFine remapping/setup can generate and use `.optifine` cache output.
+- The project builds as `1.15.2`.
+- `tinyremapper` runtime dependency/classpath issues were addressed enough for local launch to pass earlier failures.
+- Runtime patchers/backfills have been added or updated for several OptiFine-shaped Minecraft classes, including:
+  - `class_776` / block render manager
+  - `class_761` / world renderer
+  - `class_1092` / baked model manager
+  - `class_775` / fluid renderer
+  - `class_309`
+  - `class_702`
+  - `class_10430`
+- Excluded 1.21 compat mixin packages are skipped at runtime instead of registering mixin configs whose classes are not present in the 1.21 build.
 
-- `src/main/java/me/modmuss50/optifabric/util/ZipUtils.java`
-- `src/main/java/me/modmuss50/optifabric/mod/OptifabricSetup.java`
-- `src/main/java/me/modmuss50/optifabric/mod/OptifineSetup.java`
-- `src/main/java/me/modmuss50/optifabric/mod/OptifineInjector.java`
-- `src/main/java/me/modmuss50/optifabric/patcher/fixes/OptifineFixer.java`
-- `src/main/java/me/modmuss50/optifabric/patcher/fixes/BlockRenderManagerFix.java`
-- `src/main/java/me/modmuss50/optifabric/patcher/fixes/BakedModelManagerFix.java`
-- `src/main/java/me/modmuss50/optifabric/patcher/fixes/WorldRendererFix.java`
-- `src/main/java/me/modmuss50/optifabric/compat/fabricrendererapi/RendererMixinPlugin.java`
-- `src/main/java/me/modmuss50/optifabric/compat/full_slabs/FullSlabsMixinPlugin.java`
-- `debug/latest.log`
-- `debug/optifabric-startup.log`
-- `debug/optifabric-debug/net_minecraft_class_776.class`
+## Important Current Understanding
 
-## Workflow note
+- Most observed failures have been Minecraft `1.21.11` compatibility issues, not original OptiFabric bugs.
+- OptiFine rewrites Minecraft classes enough that Fabric mixin anchors often need 1.21.11-specific backfills or guards.
+- The old per-class ping-pong should be avoided where possible by inspecting local class dumps, mixin configs, and bytecode before asking the user to run Windows.
+- Linux/WSL rendering/audio behavior is not a final correctness signal. It is good for Java/classloading/mixin/patcher verification.
+- Windows remains the final platform confirmation because the user plays there.
 
-The `debug/` folder is ephemeral and must be re-read after every run. Use only the latest regenerated files when deciding the next change.
+## Safety Notes
+
+- Do not write to the user's real `.minecraft`.
+- Do not remove build outputs just to clean up.
+- Keep changes focused on OptiFabric 1.21.11 compatibility.
+- Rebuild after source changes and verify locally before reporting back.

@@ -9,17 +9,24 @@ import java.nio.file.StandardOpenOption;
 
 import net.fabricmc.loader.api.FabricLoader;
 
-final class StartupLog {
+public final class StartupLog {
 	private StartupLog() {
 	}
 
-	static void record(String message) {
+	public static void record(String message) {
 		try {
 			Path logFile = getLogFile();
 			Files.writeString(logFile, message + System.lineSeparator(), StandardCharsets.UTF_8,
 					StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 		} catch (IOException | RuntimeException ignored) {
 			// Best effort only.
+		}
+	}
+
+	public static void recordStack(String message) {
+		record(message);
+		for (StackTraceElement element : new Throwable().getStackTrace()) {
+			record(message + "-stack " + element);
 		}
 	}
 

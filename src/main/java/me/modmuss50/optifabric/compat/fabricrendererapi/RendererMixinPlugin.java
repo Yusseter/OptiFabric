@@ -1,11 +1,5 @@
 package me.modmuss50.optifabric.compat.fabricrendererapi;
 
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.ModContainer;
-import net.fabricmc.loader.api.metadata.ModMetadata;
-import net.fabricmc.loader.util.version.SemanticVersionImpl;
-import net.fabricmc.loader.util.version.SemanticVersionPredicateParser;
-
 import org.objectweb.asm.tree.ClassNode;
 
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -22,19 +16,6 @@ public class RendererMixinPlugin extends EmptyMixinPlugin {
 
 	@Override
 	public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-		if (isMinecraftAtLeast(">=1.21")) {
-			switch (mixinClassName) {
-			case "me.modmuss50.optifabric.compat.fabricrendererapi.mixin.BlockModelRendererMixin":
-			case "me.modmuss50.optifabric.compat.fabricrendererapi.mixin.BlockRenderManagerMixin":
-			case "me.modmuss50.optifabric.compat.fabricrendererapi.mixin.BlockModelRendererNewMixin":
-			case "me.modmuss50.optifabric.compat.fabricrendererapi.mixin.BlockRenderManagerNewMixin":
-				log("renderer-skip target=" + targetClassName + " mixin=" + mixinClassName + " minecraft>=1.21");
-				return false;
-			default:
-				break;
-			}
-		}
-
 		return true;
 	}
 
@@ -56,18 +37,5 @@ public class RendererMixinPlugin extends EmptyMixinPlugin {
 	@Override
 	public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
 		log("renderer-postApply target=" + targetClassName + " mixin=" + mixinInfo.getName() + " classRef=" + mixinInfo.getClassRef());
-	}
-
-	private static boolean isMinecraftAtLeast(String versionRange) {
-		ModContainer minecraft = FabricLoader.getInstance().getModContainer("minecraft").orElse(null);
-		if (minecraft == null) return false;
-
-		ModMetadata metadata = minecraft.getMetadata();
-		try {
-			SemanticVersionImpl version = new SemanticVersionImpl(metadata.getVersion().getFriendlyString(), false);
-			return SemanticVersionPredicateParser.create(versionRange).test(version);
-		} catch (RuntimeException e) {
-			return false;
-		}
 	}
 }
