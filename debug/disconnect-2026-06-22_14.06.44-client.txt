@@ -1,0 +1,203 @@
+---- Minecraft Network Protocol Error Report ----
+// Maybe this time it will work!
+
+Time: 2026-06-22 14:06:44
+Description: Packet handling error
+
+java.lang.RuntimeException: Mixin transformation of net.minecraft.class_9810 failed
+	at net.fabricmc.loader.impl.launch.knot.KnotClassDelegate.getPostMixinClassByteArray(KnotClassDelegate.java:440)
+	at net.fabricmc.loader.impl.launch.knot.KnotClassDelegate.tryLoadClass(KnotClassDelegate.java:336)
+	at net.fabricmc.loader.impl.launch.knot.KnotClassDelegate.loadClass(KnotClassDelegate.java:231)
+	at net.fabricmc.loader.impl.launch.knot.KnotClassLoader.loadClass(KnotClassLoader.java:119)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:526)
+	at knot//net.minecraft.class_846.<init>(class_846.java:91)
+	at knot//net.minecraft.class_761.method_3279(class_761.java:423)
+	at knot//net.minecraft.class_761.method_3244(class_761.java:382)
+	at knot//net.minecraft.class_310.method_18097(class_310.java:2367)
+	at knot//net.minecraft.class_310.method_76796(class_310.java:2357)
+	at knot//net.minecraft.class_310.method_1481(class_310.java:2214)
+	at knot//net.minecraft.class_634.method_11120(class_634.java:542)
+	at knot//net.minecraft.class_2678.method_11567(class_2678.java:69)
+	at knot//net.minecraft.class_2678.method_65081(class_2678.java:17)
+	at knot//net.minecraft.class_11980$class_11981.method_74450(class_11980.java:99)
+	at knot//net.minecraft.class_11980.method_74449(class_11980.java:77)
+	at knot//net.minecraft.class_310.method_1523(class_310.java:1337)
+	at knot//net.minecraft.class_310.method_1514(class_310.java:966)
+	at knot//net.minecraft.client.main.Main.main(Main.java:250)
+	at net.fabricmc.loader.impl.game.minecraft.MinecraftGameProvider.launch(MinecraftGameProvider.java:506)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:72)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+Caused by: org.spongepowered.asm.mixin.transformer.throwables.MixinTransformerError: An unexpected critical error was encountered
+	at org.spongepowered.asm.mixin.transformer.MixinProcessor.applyMixins(MixinProcessor.java:381)
+	at org.spongepowered.asm.mixin.transformer.MixinTransformer.transformClass(MixinTransformer.java:237)
+	at org.spongepowered.asm.mixin.transformer.MixinTransformer.transformClassBytes(MixinTransformer.java:202)
+	at net.fabricmc.loader.impl.launch.knot.KnotClassDelegate.getPostMixinClassByteArray(KnotClassDelegate.java:435)
+	... 21 more
+Caused by: org.spongepowered.asm.mixin.injection.throwables.InjectionError: Critical injection failure: Callback method hookBuild(Lnet/minecraft/class_4076;Lnet/minecraft/class_853;Lnet/minecraft/class_8251;Lnet/minecraft/class_750;Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;Lnet/minecraft/class_2338;Lnet/minecraft/class_4587;Ljava/util/Map;Lnet/minecraft/class_5819;)V in fabric-renderer-indigo.mixins.json:SectionCompilerMixin from mod fabric-renderer-indigo failed injection check, (0/1) succeeded. Scanned 0 target(s). No refMap loaded.
+	at org.spongepowered.asm.mixin.injection.struct.InjectionInfo.postInject(InjectionInfo.java:531)
+	at knot//com.llamalad7.mixinextras.wrapper.InjectorWrapperImpl.doPostInject(InjectorWrapperImpl.java:88)
+	at knot//com.llamalad7.mixinextras.sugar.impl.SugarWrapperImpl.doPostInject(SugarWrapperImpl.java:88)
+	at knot//com.llamalad7.mixinextras.wrapper.WrapperInjectionInfo.postInject(WrapperInjectionInfo.java:85)
+	at org.spongepowered.asm.mixin.transformer.MixinTargetContext.applyInjections(MixinTargetContext.java:1490)
+	at org.spongepowered.asm.mixin.transformer.MixinApplicatorStandard.applyInjections(MixinApplicatorStandard.java:752)
+	at org.spongepowered.asm.mixin.transformer.MixinApplicatorStandard.applyMixin(MixinApplicatorStandard.java:330)
+	at org.spongepowered.asm.mixin.transformer.MixinApplicatorStandard.apply(MixinApplicatorStandard.java:246)
+	at org.spongepowered.asm.mixin.transformer.TargetClassContext.apply(TargetClassContext.java:437)
+	at org.spongepowered.asm.mixin.transformer.TargetClassContext.applyMixins(TargetClassContext.java:418)
+	at org.spongepowered.asm.mixin.transformer.MixinProcessor.applyMixins(MixinProcessor.java:352)
+	... 24 more
+
+
+A detailed walkthrough of the error, its code path and all known details is as follows:
+---------------------------------------------------------------------------------------
+
+-- Head --
+Thread: Render thread
+Stacktrace:
+	at net.fabricmc.loader.impl.launch.knot.KnotClassDelegate.getPostMixinClassByteArray(KnotClassDelegate.java:440)
+	at net.fabricmc.loader.impl.launch.knot.KnotClassDelegate.tryLoadClass(KnotClassDelegate.java:336)
+	at net.fabricmc.loader.impl.launch.knot.KnotClassDelegate.loadClass(KnotClassDelegate.java:231)
+	at net.fabricmc.loader.impl.launch.knot.KnotClassLoader.loadClass(KnotClassLoader.java:119)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:526)
+	at knot//net.minecraft.class_846.<init>(class_846.java:91)
+	at knot//net.minecraft.class_761.method_3279(class_761.java:423)
+	at knot//net.minecraft.class_761.method_3244(class_761.java:382)
+	at knot//net.minecraft.class_310.method_18097(class_310.java:2367)
+	at knot//net.minecraft.class_310.method_76796(class_310.java:2357)
+	at knot//net.minecraft.class_310.method_1481(class_310.java:2214)
+
+-- Incoming Packet --
+Details:
+	Type: clientbound/minecraft:login
+	Is Terminal: false
+	Is Skippable: false
+Stacktrace:
+	at knot//net.minecraft.class_2600.method_59803(class_2600.java:41)
+	at knot//net.minecraft.class_8673.method_60882(class_8673.java:146)
+	at knot//net.minecraft.class_8673.method_59807(class_8673.java:125)
+	at knot//net.minecraft.class_11980$class_11981.method_74450(class_11980.java:108)
+	at knot//net.minecraft.class_11980.method_74449(class_11980.java:77)
+	at knot//net.minecraft.class_310.method_1523(class_310.java:1337)
+	at knot//net.minecraft.class_310.method_1514(class_310.java:966)
+	at knot//net.minecraft.client.main.Main.main(Main.java:250)
+	at net.fabricmc.loader.impl.game.minecraft.MinecraftGameProvider.launch(MinecraftGameProvider.java:506)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:72)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+
+-- Connection --
+Details:
+	Protocol: play
+	Flow: CLIENTBOUND
+	Is Local: true
+	Server type: <none>
+	Server brand: fabric
+
+-- System Details --
+Details:
+	Minecraft Version: 1.21.11
+	Minecraft Version ID: 1.21.11
+	Operating System: Windows 11 (amd64) version 10.0
+	Java Version: 21.0.7, Microsoft
+	Java VM Version: OpenJDK 64-Bit Server VM (mixed mode), Microsoft
+	Memory: 201992816 bytes (192 MiB) / 805306368 bytes (768 MiB) up to 2147483648 bytes (2048 MiB)
+	CPUs: 12
+	Processor Vendor: AuthenticAMD
+	Processor Name: AMD Ryzen 5 5600 6-Core Processor              
+	Identifier: AuthenticAMD Family 25 Model 33 Stepping 2
+	Microarchitecture: Zen 3
+	Frequency (GHz): 3.50
+	Number of physical packages: 1
+	Number of physical CPUs: 6
+	Number of logical CPUs: 12
+	Graphics card #0 name: NVIDIA GeForce GTX 1080
+	Graphics card #0 vendor: NVIDIA
+	Graphics card #0 VRAM (MiB): 8192.00
+	Graphics card #0 deviceId: VideoController1
+	Graphics card #0 versionInfo: 32.0.15.6636
+	Memory slot #0 capacity (MiB): 8192.00
+	Memory slot #0 clockSpeed (GHz): 3.20
+	Memory slot #0 type: DDR4
+	Memory slot #1 capacity (MiB): 8192.00
+	Memory slot #1 clockSpeed (GHz): 3.20
+	Memory slot #1 type: DDR4
+	Memory slot #2 capacity (MiB): 8192.00
+	Memory slot #2 clockSpeed (GHz): 3.20
+	Memory slot #2 type: DDR4
+	Memory slot #3 capacity (MiB): 8192.00
+	Memory slot #3 clockSpeed (GHz): 3.20
+	Memory slot #3 type: DDR4
+	Virtual memory max (MiB): 37672.02
+	Virtual memory used (MiB): 34008.13
+	Swap memory total (MiB): 4993.59
+	Swap memory used (MiB): 137.37
+	Space in storage for jna.tmpdir (MiB): available: 20844.15, total: 975855.00
+	Space in storage for org.lwjgl.system.SharedLibraryExtractPath (MiB): available: 20844.15, total: 975855.00
+	Space in storage for io.netty.native.workdir (MiB): available: 20844.15, total: 975855.00
+	Space in storage for java.io.tmpdir (MiB): available: 20844.15, total: 975855.00
+	Space in storage for workdir (MiB): available: 20844.15, total: 975855.00
+	JVM Flags: 9 total; -XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump -Xss1M -Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M
+	Debug Flags: 0 total; 
+	Fabric Mods: 
+		fabric-api: Fabric API 0.141.4+1.21.11
+			fabric-api-base: Fabric API Base 1.0.5+4ebb5c083e
+			fabric-api-lookup-api-v1: Fabric API Lookup API (v1) 1.6.114+20dc27073e
+			fabric-biome-api-v1: Fabric Biome API (v1) 17.1.1+4fc5413f3e
+			fabric-block-api-v1: Fabric Block API (v1) 1.1.10+4ebb5c083e
+			fabric-block-view-api-v2: Fabric BlockView API (v2) 1.0.39+4ebb5c083e
+			fabric-command-api-v2: Fabric Command API (v2) 2.4.7+6b42a6003e
+			fabric-content-registries-v0: Fabric Content Registries (v0) 10.2.14+4fc5413f3e
+			fabric-convention-tags-v1: Fabric Convention Tags 2.1.55+7f945d5b3e
+			fabric-convention-tags-v2: Fabric Convention Tags (v2) 2.17.3+8ef948ba3e
+			fabric-crash-report-info-v1: Fabric Crash Report Info (v1) 0.3.23+4ebb5c083e
+			fabric-data-attachment-api-v1: Fabric Data Attachment API (v1) 1.8.48+eed0806f3e
+			fabric-data-generation-api-v1: Fabric Data Generation API (v1) 23.4.1+69974c4e3e
+			fabric-dimensions-v1: Fabric Dimensions API (v1) 4.0.28+4fc5413f3e
+			fabric-entity-events-v1: Fabric Entity Events (v1) 3.1.1+1d0ab4303e
+			fabric-events-interaction-v0: Fabric Events Interaction (v0) 4.1.1+3b89ecf63e
+			fabric-game-rule-api-v1: Fabric Game Rule API (v1) 2.0.3+4fc5413f3e
+			fabric-item-api-v1: Fabric Item API (v1) 11.5.20+d0c46b9e3e
+			fabric-item-group-api-v1: Fabric Item Group API (v1) 4.2.36+4fc5413f3e
+			fabric-key-binding-api-v1: Fabric Key Binding API (v1) 1.1.7+4fc5413f3e
+			fabric-lifecycle-events-v1: Fabric Lifecycle Events (v1) 2.6.15+4ebb5c083e
+			fabric-loot-api-v2: Fabric Loot API (v2) 3.0.73+3f89f5a53e
+			fabric-loot-api-v3: Fabric Loot API (v3) 2.0.20+78c8b4663e
+			fabric-message-api-v1: Fabric Message API (v1) 6.1.12+4ebb5c083e
+			fabric-model-loading-api-v1: Fabric Model Loading API (v1) 6.0.15+4fc5413f3e
+			fabric-networking-api-v1: Fabric Networking API (v1) 5.1.6+6b6d71a53e
+			fabric-object-builder-api-v1: Fabric Object Builder API (v1) 21.1.40+4fc5413f3e
+			fabric-particles-v1: Fabric Particles (v1) 4.2.12+4fc5413f3e
+			fabric-recipe-api-v1: Fabric Recipe API (v1) 8.2.4+4ebb5c083e
+			fabric-registry-sync-v0: Fabric Registry Sync (v0) 6.2.6+1718722b3e
+			fabric-renderer-api-v1: Fabric Renderer API (v1) 8.0.3+f4ffd2e53e
+			fabric-renderer-indigo: Fabric Renderer - Indigo 5.0.3+f4ffd2e53e
+			fabric-rendering-fluids-v1: Fabric Rendering Fluids (v1) 3.1.43+4ebb5c083e
+			fabric-rendering-v1: Fabric Rendering (v1) 16.2.10+0290ad933e
+			fabric-resource-conditions-api-v1: Fabric Resource Conditions API (v1) 5.0.35+4fc5413f3e
+			fabric-resource-loader-v0: Fabric Resource Loader (v0) 3.3.4+4fc5413f3e
+			fabric-resource-loader-v1: Fabric Resource Loader (v1) 1.0.10+78c8b4663e
+			fabric-screen-api-v1: Fabric Screen API (v1) 3.1.7+4ebb5c083e
+			fabric-screen-handler-api-v1: Fabric Screen Handler API (v1) 1.3.162+4fc5413f3e
+			fabric-serialization-api-v1: Fabric Serialization API (v1) 1.0.5+4ebb5c083e
+			fabric-sound-api-v1: Fabric Sound API (v1) 1.0.51+4fc5413f3e
+			fabric-tag-api-v1: Fabric Tag API (v1) 1.2.20+4fc5413f3e
+			fabric-transfer-api-v1: Fabric Transfer API (v1) 6.0.25+4fc5413f3e
+			fabric-transitive-access-wideners-v1: Fabric Transitive Access Wideners (v1) 7.1.0+014c8cec3e
+		fabricloader: Fabric Loader 0.17.3
+			mixinextras: MixinExtras 0.5.0
+		java: OpenJDK 64-Bit Server VM 21
+		minecraft: Minecraft 1.21.11
+		optifabric: OptiFabric 1.15.2
+			mm: Manningham Mills 2.3
+			optifabric-libs: OptiFabric Libraries 1.15.2
+	OptiFine Version: OptiFine_1.21.11_HD_U_J9
+	OptiFine Build: 20260205-190839
+	Render Distance Chunks: 20
+	Mipmaps: 4
+	Anisotropic Filtering: 1
+	Antialiasing: 0
+	Multitexture: false
+	Shaders: ComplementaryReimagined_r5.3.zip
+	OpenGlVersion: 3.3.0 NVIDIA 566.36
+	OpenGlRenderer: NVIDIA GeForce GTX 1080/PCIe/SSE2
+	OpenGlVendor: NVIDIA Corporation
+	CpuCount: 12
