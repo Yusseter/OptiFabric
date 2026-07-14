@@ -5,7 +5,6 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -55,8 +54,6 @@ public class FluidRendererFix implements ClassFixer {
 					LabelNode noNeed = setTint.label;
 
 					InsnList extra = new InsnList();
-					extra.add(new IntInsnNode(Opcodes.BIPUSH, 16));
-					extra.add(new InsnNode(Opcodes.POP));
 					method.instructions.insertBefore(setTint, extra);
 
 					setTint.label = needsOptiFine;
@@ -70,12 +67,34 @@ public class FluidRendererFix implements ClassFixer {
 					method.instructions.insert(setTint, extra);
 					log("class_775 render patched using CustomColors#getFluidColor anchor");
 				} else {
-					appendBiomeColorAnchor(method);
 					log("class_775 render patched using dead BiomeColors#getWaterColor anchor");
+				}
+
+				if (!hasBiomeColorAnchor(method)) {
+					appendBiomeColorAnchor(method);
+					log("class_775 render patched with Fabric water color injection anchor");
 				}
 				break;
 			}
 		}
+	}
+
+	private static boolean hasBiomeColorAnchor(MethodNode method) {
+		String biomeColors = RemappingUtils.getClassName("class_1163");
+		String getWaterColor = RemappingUtils.getMethodName("class_1163", "method_4961",
+				"(Lnet/minecraft/class_1920;Lnet/minecraft/class_2338;)I");
+		String getWaterColorDesc = RemappingUtils.mapMethodDescriptor("(Lnet/minecraft/class_1920;Lnet/minecraft/class_2338;)I");
+
+		for (AbstractInsnNode insn : method.instructions) {
+			if (insn instanceof MethodInsnNode) {
+				MethodInsnNode methodInsn = (MethodInsnNode) insn;
+				if (biomeColors.equals(methodInsn.owner) && getWaterColor.equals(methodInsn.name) && getWaterColorDesc.equals(methodInsn.desc)) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	private static void appendBiomeColorAnchor(MethodNode method) {

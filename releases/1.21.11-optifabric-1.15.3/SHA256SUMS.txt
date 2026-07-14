@@ -1,4 +1,0 @@
-63c56d645c94b5014e032c4d21ccb09843abcfb8d55968dd4331d5eaa21260d5  custom_hud-4.1.3+1.21.11-optifabric-patched.jar
-95f2c9571ca4a1e30d473783ed909c6b9d997b0b3e1418ea189cad73282c5128  modmenu-17.0.0.jar
-81e21aac3ad730a7b90bad698ad3f8dcbde522e96d842e5134aa80032edd38a1  optifabric-1.15.3.jar
-a5c4a91011ef02011870f4e50d8f75ead6c5d2869b46953df5bd431a912c75cc  yet_another_config_lib_v3-3.8.2+1.21.11-fabric-optifabric-patched.jar

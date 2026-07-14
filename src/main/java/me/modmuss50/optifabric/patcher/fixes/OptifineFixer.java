@@ -60,6 +60,14 @@ public class OptifineFixer {
 		//net/minecraft/client/gui/hud/InGameOverlayRenderer
 		registerFix("class_4603", new InGameOverlayRendererFix());
 
+		if (FabricLoader.getInstance().isModLoaded("fabric-lifecycle-events-v1")) {
+			registerFix("class_631", new ClientChunkManagerFix());
+		}
+
+		if (FabricLoader.getInstance().isModLoaded("fabric-renderer-indigo")) {
+			registerFix("class_9810", new SectionCompilerFix());
+		}
+
 		//net/minecraft/client/render/model/json/ModelOverrideList
 		registerFix("class_806", new ModelOverrideListFix());
 

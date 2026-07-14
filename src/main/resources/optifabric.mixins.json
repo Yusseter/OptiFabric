@@ -6,7 +6,9 @@
   "mixins": [
     "MixinTitleScreen",
     "CrashReportMixin",
-    "MinecraftClientDiagnosticsMixin"
+    "MinecraftClientDiagnosticsMixin",
+    "MinecraftClientAccess",
+    "MouseLockMixin"
   ],
   "injectors": {
     "defaultRequire": 1

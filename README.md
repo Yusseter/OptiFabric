@@ -1,5 +1,17 @@
 # OptiFabric
 
+## Minecraft 1.21.11 Compatibility Fork
+
+This is an unofficial Fabric compatibility fork based on upstream OptiFabric
+`1.14.3` at commit `d9a13f3`. The compatibility release version is
+`1.14.4-c.1+1.21.11-fabric` and targets Minecraft `1.21.11`.
+
+The patch component is incremented so this build sorts after its upstream base,
+`c.1` identifies the first compatibility-fork release, and the metadata after
+`+` records the Minecraft version and loader without affecting version
+precedence. Upstream development remains at
+https://github.com/Chocohead/OptiFabric.
+
 ![](https://ss.modmuss50.me/javaw_2019-05-22_20-33-34.jpg)
 
 __Note:__ This project is not related or supported by either Fabric or Optifine.
