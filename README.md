@@ -59,6 +59,17 @@ Class export can be enabled using the following VM Option, this will extract the
 
 `-Doptifabric.extract=true`
 
+## Building
+
+The Gradle 7.4 build runs on Java 17 and uses a Java 21 compiler for the
+Minecraft 1.21.11 classes:
+
+```sh
+JAVA21_HOME=/path/to/jdk-21 ./gradlew clean build
+```
+
+The distributable jar is written to `build/libs/optifabric-1.14.4-c.1+1.21.11-fabric.jar`.
+
 ## Screenshots
 
 Feel free to open a PR with more screenshots.
