@@ -61,6 +61,7 @@ configurations {
 	shadow {
 		transitive = false
 	}
+	minecraftCompileRemapper
 	implementation {
 		extendsFrom shadow
 	}
@@ -133,8 +134,37 @@ dependencies {
 	}
 
 	shadow "net.fabricmc:tiny-remapper:${project.tiny_remapper_version}"
+	minecraftCompileRemapper "net.fabricmc:tiny-remapper:${project.tiny_remapper_version}"
 	modImplementation "com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}"
 	include "com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}"
+}
+
+if (project.minecraft_version.startsWith('1.21')) {
+	def clientJar = { file("${minecraft.userCache}/minecraft-${project.minecraft_version}-client.jar") }
+	def mappingsFile = { minecraft.mappingsProvider.MAPPINGS_TINY }
+	def namedMinecraftCompileJar = { minecraft.minecraftMappedProvider.MINECRAFT_MAPPED_JAR }
+
+	task remapMinecraftForCompile(type: JavaExec) {
+		inputs.files(clientJar, mappingsFile)
+		outputs.file(namedMinecraftCompileJar)
+		classpath = configurations.minecraftCompileRemapper
+		main = 'net.fabricmc.tinyremapper.Main'
+
+		doFirst {
+			def output = namedMinecraftCompileJar()
+
+			if (!clientJar().isFile()) {
+				throw new GradleException("Minecraft client jar is missing: ${clientJar()}")
+			}
+			if (!mappingsFile().isFile()) {
+				throw new GradleException("Minecraft mappings are missing: ${mappingsFile()}")
+			}
+
+			output.parentFile.mkdirs()
+			output.delete()
+			args clientJar(), output, mappingsFile(), 'official', 'named', '--ignoreConflicts'
+		}
+	}
 }
 
 sourceSets {
@@ -150,6 +180,10 @@ sourceSets {
 }
 
 compileJava {
+	if (project.minecraft_version.startsWith('1.21')) {
+		dependsOn remapMinecraftForCompile
+	}
+
 	mappings {
 		from = 'named'
 		to = 'intermediary'
