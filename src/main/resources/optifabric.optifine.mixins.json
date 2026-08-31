@@ -9,6 +9,7 @@
 		"VideoOptionsScreenMixin",
 		"Config",
 		"SMCLog",
-		"ParticleManagerMixin"
+		"ParticleManagerMixin",
+		"ResUtilsMixin"
 	]
 }
