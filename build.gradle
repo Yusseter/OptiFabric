@@ -13,7 +13,6 @@ buildscript {
 	}
 	dependencies {
 		classpath 'org.ow2.asm:asm:9.8'
-		classpath 'net.fabricmc:stitch:0.6.2'
 		classpath 'com.github.Chocohead:tiny-remapper:b822055d2069b51a34d3834648aba4db4424f120'
 		classpath 'com.github.Chocohead.Fabric-Loom:fabric-loom:2fc5f55'
 		classpath 'com.github.johnrengelman.shadow:com.github.johnrengelman.shadow.gradle.plugin:4.0.4'
