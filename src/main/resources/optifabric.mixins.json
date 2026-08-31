@@ -8,6 +8,7 @@
     "CrashReportMixin",
     "MinecraftClientDiagnosticsMixin",
     "MinecraftClientAccess",
+    "InventoryProfilesNextCompatMixin",
     "MouseLockMixin"
   ],
   "injectors": {
