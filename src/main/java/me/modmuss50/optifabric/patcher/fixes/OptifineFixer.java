@@ -57,6 +57,9 @@ public class OptifineFixer {
 		//net/minecraft/client/render/WorldRenderer
 		registerFix("class_761", new WorldRendererFix());
 
+        //net/minecraft/client/option/SimpleOption$Callbacks
+        registerFix("class_7172$class_7178", new SimpleOptionCallbacksFix());
+
         //net/minecraft/client/gui/screen/option/VideoOptionsScreen
         registerFix("class_446", new VideoOptionsScreenFix());
 		//net/minecraft/client/gui/hud/InGameOverlayRenderer
