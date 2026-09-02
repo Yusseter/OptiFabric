@@ -4,67 +4,142 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-/** Called from {@link FluidRendererFix}, here to avoid class loading Minecraft stuff too early */
+/**
+ * Called from FluidRendererFix at runtime so game and Fabric classes are not
+ * loaded while OptiFine classes are being patched.
+ */
 public class FluidRendererFixExternal {
-	public static boolean needsOptiFine(Object state) {
-		Object fluid = getFluid(state);
-		return isWater(fluid) && isFabricHandler(getRenderHandler(fluid));
-	}
+    private static volatile Method fluidColorMethod;
 
-	private static Object getFluid(Object state) {
-		Object resolved = invokeOptional(state, "getFluid");
-		if (resolved != null) {
-			return resolved;
-		}
+    public static int getFabricColor(
+            Object level,
+            Object pos,
+            Object state,
+            int original
+    ) {
+        Object handler = getCurrentHandler();
 
-		resolved = invokeOptional(state, "getFluidState");
-		if (resolved != null) {
-			Object nested = invokeOptional(resolved, "getFluid");
-			if (nested != null) {
-				return nested;
-			}
+        if (handler == null || isDefaultFabricHandler(handler)) {
+            return original;
+        }
 
-			return resolved;
-		}
+        try {
+            int color =
+                    ((Number) getFluidColorMethod().invoke(
+                            handler,
+                            level,
+                            pos,
+                            state
+                    )).intValue();
 
-		throw new IllegalStateException("Unable to read fluid from " + state.getClass().getName());
-	}
+            return color & 0xFFFFFF;
+        } catch (
+                IllegalAccessException |
+                InvocationTargetException e
+        ) {
+            throw new IllegalStateException(
+                    "Unable to invoke Fabric fluid color handler",
+                    e
+            );
+        }
+    }
 
-	private static Object invokeOptional(Object target, String methodName) {
-		try {
-			Method method = target.getClass().getMethod(methodName);
-			return method.invoke(target);
-		} catch (NoSuchMethodException e) {
-			return null;
-		} catch (ReflectiveOperationException e) {
-			throw new IllegalStateException("Unable to invoke " + methodName + " on " + target.getClass().getName(), e);
-		}
-	}
+    private static Method getFluidColorMethod() {
+        Method method = fluidColorMethod;
 
-	private static boolean isWater(Object fluid) {
-		try {
-			Class<?> fluids = Class.forName("net.minecraft.fluid.Fluids");
-			Field water = fluids.getField("WATER");
-			Field flowingWater = fluids.getField("FLOWING_WATER");
-			return fluid == water.get(null) || fluid == flowingWater.get(null);
-		} catch (ReflectiveOperationException e) {
-			throw new IllegalStateException("Unable to resolve water fluids", e);
-		}
-	}
+        if (method != null) {
+            return method;
+        }
 
-	private static Object getRenderHandler(Object fluid) {
-		try {
-			Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandlerRegistry");
-			Field instanceField = registryClass.getField("INSTANCE");
-			Object registry = instanceField.get(null);
-			Method getMethod = registryClass.getMethod("get", Class.forName("net.minecraft.fluid.Fluid"));
-			return getMethod.invoke(registry, fluid);
-		} catch (ClassNotFoundException | NoSuchFieldException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-			throw new IllegalStateException("Unable to resolve render handler", e);
-		}
-	}
+        synchronized (FluidRendererFixExternal.class) {
+            method = fluidColorMethod;
 
-	private static boolean isFabricHandler(Object handler) {
-		return handler != null && handler.getClass().getName().startsWith("net.fabricmc.fabric.");
-	}
+            if (method != null) {
+                return method;
+            }
+
+            try {
+                Class<?> handlerInterface =
+                        Class.forName(
+                                "net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandler"
+                        );
+
+                Method match = null;
+
+                for (Method candidate : handlerInterface.getMethods()) {
+                    if (
+                            !"getFluidColor".equals(candidate.getName()) ||
+                            candidate.getParameterCount() != 3 ||
+                            candidate.getReturnType() != int.class
+                    ) {
+                        continue;
+                    }
+
+                    if (match != null) {
+                        throw new IllegalStateException(
+                                "Found multiple Fabric fluid color methods"
+                        );
+                    }
+
+                    match = candidate;
+                }
+
+                if (match == null) {
+                    throw new IllegalStateException(
+                            "Could not find Fabric fluid color method"
+                    );
+                }
+
+                fluidColorMethod = match;
+                return match;
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException(
+                        "Unable to resolve Fabric fluid render handler",
+                        e
+                );
+            }
+        }
+    }
+
+    private static Object getCurrentHandler() {
+        try {
+            Class<?> renderingImpl =
+                    Class.forName(
+                            "net.fabricmc.fabric.impl.client.rendering.fluid.FluidRenderingImpl"
+                    );
+
+            Method getCurrentInfo =
+                    renderingImpl.getMethod(
+                            "getCurrentInfo"
+                    );
+
+            Object info =
+                    getCurrentInfo.invoke(null);
+
+            Field handler =
+                    info.getClass().getField(
+                            "handler"
+                    );
+
+            return handler.get(info);
+        } catch (
+                ClassNotFoundException |
+                NoSuchFieldException |
+                NoSuchMethodException |
+                IllegalAccessException |
+                InvocationTargetException e
+        ) {
+            throw new IllegalStateException(
+                    "Unable to resolve current Fabric fluid handler",
+                    e
+            );
+        }
+    }
+
+    private static boolean isDefaultFabricHandler(Object handler) {
+        return handler
+                .getClass()
+                .getName()
+                .startsWith("net.fabricmc.fabric.");
+    }
 }

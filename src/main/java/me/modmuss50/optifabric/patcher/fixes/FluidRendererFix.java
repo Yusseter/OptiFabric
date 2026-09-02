@@ -49,26 +49,30 @@ public class FluidRendererFix implements ClassFixer {
 					}
 				}
 
-				if (setTint != null) {
-					LabelNode needsOptiFine = new LabelNode();
-					LabelNode noNeed = setTint.label;
+                if (setTint != null) {
+                    VarInsnNode colorLoad = findColorLoad(setTint);
 
-					InsnList extra = new InsnList();
-					method.instructions.insertBefore(setTint, extra);
+                    InsnList extra = new InsnList();
+                    extra.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                    extra.add(new VarInsnNode(Opcodes.ALOAD, 2));
+                    extra.add(new VarInsnNode(Opcodes.ALOAD, isNewRender ? 5 : 4));
+                    extra.add(new VarInsnNode(Opcodes.ILOAD, colorLoad.var));
+                    extra.add(new MethodInsnNode(
+                            Opcodes.INVOKESTATIC,
+                            "me/modmuss50/optifabric/patcher/fixes/FluidRendererFixExternal",
+                            "getFabricColor",
+                            "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)I",
+                            false
+                    ));
+                    extra.add(new VarInsnNode(Opcodes.ISTORE, colorLoad.var));
 
-					setTint.label = needsOptiFine;
-					setTint.setOpcode(Opcodes.IFLT);
+                    method.instructions.insertBefore(colorLoad, extra);
+                    method.maxStack = Math.max(method.maxStack, 4);
 
-					extra.add(new VarInsnNode(Opcodes.ALOAD, isNewRender ? 5 : 4));
-					extra.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "me/modmuss50/optifabric/patcher/fixes/FluidRendererFixExternal",
-							"needsOptiFine", RemappingUtils.mapMethodDescriptor("(Ljava/lang/Object;)Z")));
-					extra.add(new JumpInsnNode(Opcodes.IFEQ, noNeed));
-					extra.add(needsOptiFine);
-					method.instructions.insert(setTint, extra);
-					log("class_775 render patched using CustomColors#getFluidColor anchor");
-				} else {
-					log("class_775 render patched using dead BiomeColors#getWaterColor anchor");
-				}
+                    log("class_775 render patched with live Fabric fluid color bridge");
+                } else {
+                    log("class_775 render patched using dead BiomeColors#getWaterColor anchor");
+                }
 
 				if (!hasBiomeColorAnchor(method)) {
 					appendBiomeColorAnchor(method);
@@ -79,7 +83,27 @@ public class FluidRendererFix implements ClassFixer {
 		}
 	}
 
-	private static boolean hasBiomeColorAnchor(MethodNode method) {
+    private static VarInsnNode findColorLoad(JumpInsnNode branch) {
+        AbstractInsnNode node = branch.getPrevious();
+
+        while (node != null &&
+                (node.getType() == AbstractInsnNode.LABEL ||
+                        node.getType() == AbstractInsnNode.LINE ||
+                        node.getType() == AbstractInsnNode.FRAME)) {
+            node = node.getPrevious();
+        }
+
+        if (!(node instanceof VarInsnNode) ||
+                node.getOpcode() != Opcodes.ILOAD) {
+            throw new IllegalStateException(
+                    "Unable to find fluid color local before OptiFine color branch"
+            );
+        }
+
+        return (VarInsnNode) node;
+    }
+
+    private static boolean hasBiomeColorAnchor(MethodNode method) {
 		String biomeColors = RemappingUtils.getClassName("class_1163");
 		String getWaterColor = RemappingUtils.getMethodName("class_1163", "method_4961",
 				"(Lnet/minecraft/class_1920;Lnet/minecraft/class_2338;)I");
