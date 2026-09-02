@@ -24,16 +24,6 @@ public class SimpleOptionCallbacksFix implements ClassFixer {
             );
         }
 
-        if (
-                findMethod(
-                        optifine,
-                        vanillaCodec.name,
-                        vanillaCodec.desc
-                ) != null
-        ) {
-            return;
-        }
-
         MethodNode optifineCodec = findMethodByDescriptor(
                 optifine,
                 CODEC_DESC
@@ -45,39 +35,96 @@ public class SimpleOptionCallbacksFix implements ClassFixer {
             );
         }
 
+        MethodNode vanillaBridge = findMethod(
+                optifine,
+                vanillaCodec.name,
+                vanillaCodec.desc
+        );
+
+        if (vanillaBridge == null) {
+            vanillaBridge = createBridge(
+                    optifine,
+                    vanillaCodec,
+                    optifineCodec
+            );
+
+            optifine.methods.add(vanillaBridge);
+        }
+
+        if ((optifineCodec.access & Opcodes.ACC_ABSTRACT) != 0) {
+            makeDefaultBridge(
+                    optifine,
+                    optifineCodec,
+                    vanillaBridge
+            );
+        }
+    }
+
+    private static MethodNode createBridge(
+            ClassNode owner,
+            MethodNode method,
+            MethodNode target
+    ) {
         MethodNode bridge = new MethodNode(
                 Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC,
-                vanillaCodec.name,
-                vanillaCodec.desc,
-                vanillaCodec.signature,
+                method.name,
+                method.desc,
+                method.signature,
                 null
         );
 
-        bridge.instructions.add(
+        addBridgeInstructions(
+                owner,
+                bridge,
+                target
+        );
+
+        return bridge;
+    }
+
+    private static void makeDefaultBridge(
+            ClassNode owner,
+            MethodNode method,
+            MethodNode target
+    ) {
+        method.access &= ~Opcodes.ACC_ABSTRACT;
+        method.instructions.clear();
+
+        addBridgeInstructions(
+                owner,
+                method,
+                target
+        );
+    }
+
+    private static void addBridgeInstructions(
+            ClassNode owner,
+            MethodNode method,
+            MethodNode target
+    ) {
+        method.instructions.add(
                 new VarInsnNode(
                         Opcodes.ALOAD,
                         0
                 )
         );
 
-        bridge.instructions.add(
+        method.instructions.add(
                 new MethodInsnNode(
                         Opcodes.INVOKEINTERFACE,
-                        optifine.name,
-                        optifineCodec.name,
-                        optifineCodec.desc,
+                        owner.name,
+                        target.name,
+                        target.desc,
                         true
                 )
         );
 
-        bridge.instructions.add(
+        method.instructions.add(
                 new InsnNode(Opcodes.ARETURN)
         );
 
-        bridge.maxStack = 1;
-        bridge.maxLocals = 1;
-
-        optifine.methods.add(bridge);
+        method.maxStack = 1;
+        method.maxLocals = 1;
     }
 
     private static MethodNode findMethod(
