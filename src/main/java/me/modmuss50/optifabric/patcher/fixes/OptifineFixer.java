@@ -81,6 +81,10 @@ public class OptifineFixer {
 		        registerFix("class_329", new BedrockifyInGameHudFix());
 		}
 
+		if (FabricLoader.getInstance().isModLoaded("immediatelyfast")) {
+			registerFix("class_12249", new ImmediatelyFastRenderTypesFix());
+		}
+
 		if (FabricLoader.getInstance().isModLoaded("uglyscoreboardfix")) {
 			registerFix("class_329", "me.modmuss50.optifabric.compat.uglyscoreboardfix.InGameHudFix");
 		}
