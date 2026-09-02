@@ -57,6 +57,10 @@ public class OptifineFixer {
 		//net/minecraft/client/render/WorldRenderer
 		registerFix("class_761", new WorldRendererFix());
 
+        if (FabricLoader.getInstance().isModLoaded("resourcepackoverrides")) {
+            //net/minecraft/client/option/GameOptions
+            registerFix("class_315", new ResourcePackOverridesOptionsFix());
+        }
         //net/minecraft/client/option/SimpleOption$Callbacks
         registerFix("class_7172$class_7178", new SimpleOptionCallbacksFix());
 
