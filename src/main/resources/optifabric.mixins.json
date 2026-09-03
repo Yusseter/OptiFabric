@@ -9,6 +9,7 @@
     "MinecraftClientDiagnosticsMixin",
     "MinecraftClientAccess",
     "InventoryProfilesNextCompatMixin",
+    "EnchantmentGlintOutlineCompatMixin",
     "MouseLockMixin"
   ],
   "injectors": {
