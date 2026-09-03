@@ -11,6 +11,7 @@ import net.minecraft.client.option.GameOptions;
 import net.minecraft.text.Text;
 
 import me.modmuss50.optifabric.compatibility.VideoOptionsScreenCompat;
+import me.modmuss50.optifabric.mixin.EntryListWidgetAccessor;
 
 public final class ModdedVideoSettingsScreen
         extends GameOptionsScreen {
@@ -36,6 +37,12 @@ public final class ModdedVideoSettingsScreen
 
     @Override
     protected void init() {
+        /*
+         * OptiFine draws submenu titles at y = 15.
+         * A 39px vanilla header centers the 9px title there.
+         */
+        this.layout.setHeaderHeight(39);
+
         super.init();
 
         if (this.body == null || this.doneButton == null) {
@@ -48,7 +55,7 @@ public final class ModdedVideoSettingsScreen
          * to the bottom of the modern vanilla layout.
          */
         int doneY =
-                this.height / 6 + 168;
+                this.height / 6 + 179;
 
         this.doneButton.setX(
                 this.width / 2 - 100
@@ -61,12 +68,19 @@ public final class ModdedVideoSettingsScreen
          * for Fabric mods, but confine it to the same general area
          * occupied by OptiFine submenu options.
          */
-        int bodyY = 32;
+        /*
+         * The section header occupies 13px before the
+         * first option entry. Entry and widget content
+         * offsets add another 4px, placing the first
+         * option at OptiFine's exact height / 6 - 12.
+         */
+        int bodyY =
+                this.height / 6 - 29;
 
         int bodyHeight =
                 Math.max(
                         40,
-                        doneY - bodyY - 8
+                        doneY - bodyY - 3
                 );
 
         this.body.position(
@@ -163,6 +177,14 @@ public final class ModdedVideoSettingsScreen
                 GameOptionsScreen screen
         ) {
             super(client, width, screen);
+
+            /*
+             * Vanilla OptionListWidget uses 25px rows.
+             * OptiFine submenus use a 21px row step.
+             * Set this before any option entries are added.
+             */
+            ((EntryListWidgetAccessor) (Object) this)
+                    .optifabric$setItemHeight(21);
         }
 
         @Override
