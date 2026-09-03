@@ -11,6 +11,8 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
+import net.fabricmc.loader.api.FabricLoader;
+
 import me.modmuss50.optifabric.util.RemappingUtils;
 
 public class FluidRendererFix implements ClassFixer {
@@ -18,12 +20,19 @@ public class FluidRendererFix implements ClassFixer {
 	private static final String OLD_RENDER_DESC = "(Lnet/minecraft/class_1920;Lnet/minecraft/class_2338;Lnet/minecraft/class_4588;Lnet/minecraft/class_3610;)Z";
 	private static final String NEW_RENDER_DESC = "(Lnet/minecraft/class_1920;Lnet/minecraft/class_2338;Lnet/minecraft/class_4588;Lnet/minecraft/class_2680;Lnet/minecraft/class_3610;)V";
 
+    private static final String VERTEX_VANILLA_DESC =
+            "(Lnet/minecraft/class_4588;FFFFFFFFIF)V";
+
 	@Override
 	public void fix(ClassNode optifine, ClassNode minecraft) {
 		String oldRender = RemappingUtils.getMethodName("class_775", "method_3347", OLD_RENDER_DESC);
 		String oldRenderDesc = RemappingUtils.mapMethodDescriptor(OLD_RENDER_DESC);
 		String newRender = RemappingUtils.getMethodName("class_775", "method_3347", NEW_RENDER_DESC);
 		String newRenderDesc = RemappingUtils.mapMethodDescriptor(NEW_RENDER_DESC);
+
+        if (FabricLoader.getInstance().isModLoaded("naturalwaters")) {
+            patchNaturalWatersAlpha(optifine);
+        }
 
 		for (MethodNode method : optifine.methods) {
 			boolean isOldRender = oldRender.equals(method.name) && oldRenderDesc.equals(method.desc);
@@ -83,6 +92,106 @@ public class FluidRendererFix implements ClassFixer {
 		}
 	}
 
+    private static void patchNaturalWatersAlpha(ClassNode optifine) {
+        String vertexVanillaDesc =
+                RemappingUtils.mapMethodDescriptor(VERTEX_VANILLA_DESC);
+
+        MethodNode vertexVanilla = null;
+
+        for (MethodNode method : optifine.methods) {
+            if (!"vertexVanilla".equals(method.name) ||
+                    !vertexVanillaDesc.equals(method.desc)) {
+                continue;
+            }
+
+            if (vertexVanilla != null) {
+                throw new IllegalStateException(
+                        "Found multiple OptiFine vertexVanilla methods"
+                );
+            }
+
+            vertexVanilla = method;
+        }
+
+        if (vertexVanilla == null) {
+            log(
+                    "class_775 vertexVanilla missing, " +
+                            "skipping Natural Waters alpha bridge"
+            );
+            return;
+        }
+
+        boolean hasAlphaLoad = false;
+
+        for (AbstractInsnNode node : vertexVanilla.instructions) {
+            if (node instanceof VarInsnNode &&
+                    node.getOpcode() == Opcodes.FLOAD &&
+                    ((VarInsnNode) node).var == 11) {
+                hasAlphaLoad = true;
+                break;
+            }
+        }
+
+        if (!hasAlphaLoad) {
+            throw new IllegalStateException(
+                    "OptiFine vertexVanilla does not load alpha parameter"
+            );
+        }
+
+        AbstractInsnNode first =
+                firstRealInstruction(vertexVanilla);
+
+        if (first == null) {
+            throw new IllegalStateException(
+                    "OptiFine vertexVanilla has no instructions"
+            );
+        }
+
+        InsnList bridge = new InsnList();
+        bridge.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        bridge.add(new VarInsnNode(Opcodes.FLOAD, 11));
+        bridge.add(new MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                "me/modmuss50/optifabric/patcher/fixes/FluidRendererFixExternal",
+                "getNaturalWatersAlpha",
+                "(Ljava/lang/Object;F)F",
+                false
+        ));
+        bridge.add(new VarInsnNode(Opcodes.FSTORE, 11));
+
+        vertexVanilla.instructions.insertBefore(
+                first,
+                bridge
+        );
+
+        vertexVanilla.maxStack =
+                Math.max(vertexVanilla.maxStack, 2);
+
+        log(
+                "class_775 vertexVanilla patched with " +
+                        "Natural Waters alpha bridge"
+        );
+    }
+
+    private static AbstractInsnNode firstRealInstruction(
+            MethodNode method
+    ) {
+        AbstractInsnNode node =
+                method.instructions.getFirst();
+
+        while (
+                node != null &&
+                (
+                        node.getType() == AbstractInsnNode.LABEL ||
+                        node.getType() == AbstractInsnNode.LINE ||
+                        node.getType() == AbstractInsnNode.FRAME
+                )
+        ) {
+            node = node.getNext();
+        }
+
+        return node;
+    }
     private static VarInsnNode findColorLoad(JumpInsnNode branch) {
         AbstractInsnNode node = branch.getPrevious();
 

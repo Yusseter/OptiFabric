@@ -10,6 +10,8 @@ import java.lang.reflect.Method;
  */
 public class FluidRendererFixExternal {
     private static volatile Method fluidColorMethod;
+    private static volatile Field naturalWatersAlphaField;
+    private static volatile boolean naturalWatersAlphaFieldResolved;
 
     public static int getFabricColor(
             Object level,
@@ -44,6 +46,97 @@ public class FluidRendererFixExternal {
         }
     }
 
+    public static float getNaturalWatersAlpha(
+            Object renderer,
+            float original
+    ) {
+        Field field =
+                getNaturalWatersAlphaField(
+                        renderer.getClass()
+                );
+
+        if (field == null) {
+            return original;
+        }
+
+        try {
+            Object value =
+                    field.get(renderer);
+
+            if (value == null) {
+                return original;
+            }
+
+            if (!(value instanceof ThreadLocal)) {
+                throw new IllegalStateException(
+                        "Natural Waters vertex alpha field " +
+                                "is not a ThreadLocal"
+                );
+            }
+
+            Object alpha =
+                    ((ThreadLocal<?>) value).get();
+
+            if (alpha == null) {
+                return original;
+            }
+
+            if (!(alpha instanceof Number)) {
+                throw new IllegalStateException(
+                        "Natural Waters vertex alpha " +
+                                "is not numeric"
+                );
+            }
+
+            return ((Number) alpha).floatValue();
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(
+                    "Unable to read Natural Waters vertex alpha",
+                    e
+            );
+        }
+    }
+
+    private static Field getNaturalWatersAlphaField(
+            Class<?> rendererClass
+    ) {
+        if (naturalWatersAlphaFieldResolved) {
+            return naturalWatersAlphaField;
+        }
+
+        synchronized (FluidRendererFixExternal.class) {
+            if (naturalWatersAlphaFieldResolved) {
+                return naturalWatersAlphaField;
+            }
+
+            try {
+                Field field =
+                        rendererClass.getDeclaredField(
+                                "naturalwaters$vertexAlpha"
+                        );
+
+                if (!ThreadLocal.class.isAssignableFrom(
+                        field.getType()
+                )) {
+                    throw new IllegalStateException(
+                            "Natural Waters vertex alpha field " +
+                                    "has unexpected type: " +
+                                    field.getType().getName()
+                    );
+                }
+
+                field.setAccessible(true);
+
+                naturalWatersAlphaField = field;
+            } catch (NoSuchFieldException e) {
+                naturalWatersAlphaField = null;
+            }
+
+            naturalWatersAlphaFieldResolved = true;
+
+            return naturalWatersAlphaField;
+        }
+    }
     private static Method getFluidColorMethod() {
         Method method = fluidColorMethod;
 
