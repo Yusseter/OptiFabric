@@ -239,7 +239,10 @@ abstract class VideoOptionsScreenMixin
                     probe
             );
 
-            return !probe.children().isEmpty();
+            return ModdedVideoSettingsScreen
+                    .optifabric$hasOptionEntries(
+                            probe
+                    );
         } catch (Exception e) {
             optifabric$warnContributionProbe(e);
             return false;

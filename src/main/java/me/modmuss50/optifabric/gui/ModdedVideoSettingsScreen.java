@@ -65,17 +65,22 @@ public final class ModdedVideoSettingsScreen
 
         /*
          * Keep the vanilla OptionListWidget compatibility surface
-         * for Fabric mods, but confine it to the same general area
-         * occupied by OptiFine submenu options.
+         * for Fabric mods while aligning its first actual option
+         * with OptiFine's submenu geometry.
+         *
+         * EntryListWidget contributes 2px before the first entry,
+         * and entry content contributes another 2px. Any headers
+         * or other non-option entries before the first WidgetEntry
+         * are measured dynamically instead of assuming one header.
          */
-        /*
-         * The section header occupies 13px before the
-         * first option entry. Entry and widget content
-         * offsets add another 4px, placing the first
-         * option at OptiFine's exact height / 6 - 12.
-         */
+        int leadingEntryHeight =
+                optifabric$getLeadingEntryHeight(
+                        this.body
+                );
+
         int bodyY =
-                this.height / 6 - 29;
+                this.height / 6 - 16
+                        - leadingEntryHeight;
 
         int bodyHeight =
                 Math.max(
@@ -136,6 +141,20 @@ public final class ModdedVideoSettingsScreen
                 );
     }
 
+    private static int optifabric$getLeadingEntryHeight(
+            OptionListWidget list
+    ) {
+        return OptiFineOptionListWidget
+                .optifabric$getLeadingEntryHeight(list);
+    }
+
+    public static boolean optifabric$hasOptionEntries(
+            OptionListWidget list
+    ) {
+        return OptiFineOptionListWidget
+                .optifabric$hasOptionEntries(list);
+    }
+
     /*
      * OptiFine submenu behaviour:
      *
@@ -185,6 +204,38 @@ public final class ModdedVideoSettingsScreen
              */
             ((EntryListWidgetAccessor) (Object) this)
                     .optifabric$setItemHeight(21);
+        }
+
+        private static int optifabric$getLeadingEntryHeight(
+                OptionListWidget list
+        ) {
+            int height = 0;
+
+            for (Component component : list.children()) {
+                if (component instanceof WidgetEntry) {
+                    return height;
+                }
+
+                height += component.getHeight();
+            }
+
+            /*
+             * No actual option entry exists, so there is no
+             * first option whose position needs compensation.
+             */
+            return 0;
+        }
+
+        private static boolean optifabric$hasOptionEntries(
+                OptionListWidget list
+        ) {
+            for (Component component : list.children()) {
+                if (component instanceof WidgetEntry) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         @Override
