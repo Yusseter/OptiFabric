@@ -10,6 +10,8 @@ import java.lang.reflect.Method;
  */
 public class FluidRendererFixExternal {
     private static volatile Method fluidColorMethod;
+    private static volatile Method currentInfoMethod;
+    private static volatile Field currentHandlerField;
     private static volatile Field naturalWatersAlphaField;
     private static volatile boolean naturalWatersAlphaFieldResolved;
 
@@ -194,36 +196,96 @@ public class FluidRendererFixExternal {
         }
     }
 
+    private static Method getCurrentInfoMethod() {
+        Method method = currentInfoMethod;
+
+        if (method != null) {
+            return method;
+        }
+
+        synchronized (FluidRendererFixExternal.class) {
+            method = currentInfoMethod;
+
+            if (method != null) {
+                return method;
+            }
+
+            try {
+                Class<?> renderingImpl =
+                        Class.forName(
+                                "net.fabricmc.fabric.impl.client.rendering.fluid.FluidRenderingImpl"
+                        );
+
+                method =
+                        renderingImpl.getMethod(
+                                "getCurrentInfo"
+                        );
+
+                currentInfoMethod = method;
+                return method;
+            } catch (
+                    ClassNotFoundException |
+                    NoSuchMethodException e
+            ) {
+                throw new IllegalStateException(
+                        "Unable to resolve Fabric fluid rendering info accessor",
+                        e
+                );
+            }
+        }
+    }
+
+    private static Field getCurrentHandlerField(
+            Class<?> infoClass
+    ) {
+        Field field = currentHandlerField;
+
+        if (field != null) {
+            return field;
+        }
+
+        synchronized (FluidRendererFixExternal.class) {
+            field = currentHandlerField;
+
+            if (field != null) {
+                return field;
+            }
+
+            try {
+                field =
+                        infoClass.getField(
+                                "handler"
+                        );
+
+                currentHandlerField = field;
+                return field;
+            } catch (NoSuchFieldException e) {
+                throw new IllegalStateException(
+                        "Unable to resolve current Fabric fluid handler field",
+                        e
+                );
+            }
+        }
+    }
+
     private static Object getCurrentHandler() {
         try {
-            Class<?> renderingImpl =
-                    Class.forName(
-                            "net.fabricmc.fabric.impl.client.rendering.fluid.FluidRenderingImpl"
-                    );
-
-            Method getCurrentInfo =
-                    renderingImpl.getMethod(
-                            "getCurrentInfo"
-                    );
-
             Object info =
-                    getCurrentInfo.invoke(null);
+                    getCurrentInfoMethod().invoke(null);
 
-            Field handler =
-                    info.getClass().getField(
-                            "handler"
-                    );
+            if (info == null) {
+                return null;
+            }
 
-            return handler.get(info);
+            return getCurrentHandlerField(
+                    info.getClass()
+            ).get(info);
         } catch (
-                ClassNotFoundException |
-                NoSuchFieldException |
-                NoSuchMethodException |
                 IllegalAccessException |
                 InvocationTargetException e
         ) {
             throw new IllegalStateException(
-                    "Unable to resolve current Fabric fluid handler",
+                    "Unable to read current Fabric fluid handler",
                     e
             );
         }
