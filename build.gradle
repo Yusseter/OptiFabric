@@ -317,6 +317,10 @@ task libraryJar(type: Jar, dependsOn: proguardJar) {
 	}
 	classifier = 'libs'
 
+	from('src/main/resources/assets/optifabric/icon.png') {
+		into 'assets/optifabric'
+	}
+
 	doLast {
 		ZipUtil.addEntry(archivePath, 'fabric.mod.json', """\
 		{
@@ -335,6 +339,7 @@ task libraryJar(type: Jar, dependsOn: proguardJar) {
 				"issues": "https://github.com/Chocohead/OptiFabric/issues"
 			},
 			"license": "LGPL-3.0",
+			"icon": "assets/optifabric/icon.png",
 			"environment": "client",
 			"custom": {
 				"modmenu:api": true,
